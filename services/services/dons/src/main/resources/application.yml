@@ -1,0 +1,77 @@
+# Service Dons : toute valeur sensible ou propre à l'environnement vient d'une variable d'environnement.
+server:
+  port: 8081
+
+spring:
+  application:
+    name: dons
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/dons_db}
+    username: ${DB_USER:dons_user}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update          # suffisant pour le projet ; Flyway serait l'étape suivante
+
+# Client gRPC vers Inventaire (nom DNS Docker en conteneur : static://inventaire:9090)
+grpc:
+  client:
+    inventaire:
+      address: ${INVENTAIRE_GRPC_ADDRESS:static://localhost:9090}
+      negotiation-type: plaintext
+inventaire:
+  deadline-ms: ${INVENTAIRE_DEADLINE_MS:2000}
+
+# Client SOAP vers Registre
+registre:
+  url: ${REGISTRE_URL:http://localhost:8083/ws}
+  timeout-ms: ${REGISTRE_TIMEOUT_MS:2000}
+
+# JWT : pas de valeur par défaut, le service refuse de démarrer sans secret
+jwt:
+  secret: ${JWT_SECRET}
+  duree: ${JWT_DUREE:PT2H}
+
+comptes-test:
+  mot-de-passe: ${COMPTES_TEST_MDP:}
+
+# Cloud-native : santé pour le healthcheck Docker ; les logs restent sur la sortie standard
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Résilience : un circuit par service distant ; les erreurs métier n'ouvrent pas le circuit
+resilience4j:
+  circuitbreaker:
+    configs:
+      defaut:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 2
+        register-health-indicator: true
+    instances:
+      registre:
+        base-config: defaut
+        ignore-exceptions:
+          - com.donsang.dons.erreur.DonneurInconnuException
+          - com.donsang.dons.erreur.ConflitException
+      inventaire:
+        base-config: defaut
+        ignore-exception-predicate: com.donsang.dons.client.ErreurMetierGrpc
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

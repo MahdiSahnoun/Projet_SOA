@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+// Contrat versionné du service Inventaire.
+package inventaire.v1;
+
+option java_multiple_files = true;
+option java_package = "com.donsang.inventaire.v1";
+
+enum GroupeSanguin {
+  GROUPE_INCONNU = 0;
+  A_POSITIF = 1;
+  A_NEGATIF = 2;
+  B_POSITIF = 3;
+  B_NEGATIF = 4;
+  AB_POSITIF = 5;
+  AB_NEGATIF = 6;
+  O_POSITIF = 7;
+  O_NEGATIF = 8;
+}
+
+service InventaireService {
+  // Unaire : nombre de poches disponibles (banque_id vide = toutes les banques).
+  rpc GetStock(StockRequest) returns (StockReponse);
+  // Unaire : réserve des poches dans une ou plusieurs banques.
+  //   RESOURCE_EXHAUSTED si le stock total est insuffisant (rien n'est réservé).
+  rpc ReserverPoches(ReservationRequest) returns (ReservationReponse);
+  // Unaire : remet en DISPONIBLE les poches réservées pour une demande annulée.
+  rpc LibererReservation(ReferenceRequest) returns (Ack);
+  // Unaire : passe les poches réservées en SORTIE (livraison).
+  rpc ConfirmerSortie(ReferenceRequest) returns (Ack);
+  // Unaire : entrée d'une poche. NOT_FOUND si la banque est inconnue.
+  rpc AjouterPoche(AjoutPocheRequest) returns (PocheReponse);
+  // Streaming serveur : état des stocks en temps réel.
+  rpc StreamStocks(StockRequest) returns (stream EtatStock);
+}
+
+message StockRequest {
+  string banque_id = 1;
+  GroupeSanguin groupe = 2;
+}
+
+message StockReponse {
+  int32 disponibles = 1;
+}
+
+message ReservationRequest {
+  repeated GroupeSanguin groupes = 1;   // groupes compatibles, calculés par Dons
+  int32 quantite = 2;
+  string reference_demande = 3;         // référence opaque (ex. DEM-42)
+}
+
+message AllocationBanque {
+  string banque_id = 1;
+  GroupeSanguin groupe = 2;
+  int32 quantite = 3;
+}
+
+message ReservationReponse {
+  repeated AllocationBanque allocations = 1;
+}
+
+message ReferenceRequest {
+  string reference_demande = 1;
+}
+
+message Ack {
+  bool ok = 1;
+}
+
+message AjoutPocheRequest {
+  string banque_id = 1;
+  GroupeSanguin groupe = 2;
+  int32 volume_ml = 3;
+  string date_collecte = 4;     // ISO-8601, ex. 2026-11-15
+  string date_peremption = 5;   // ISO-8601
+}
+
+message PocheReponse {
+  string poche_id = 1;
+}
+
+message EtatStock {
+  string banque_id = 1;
+  GroupeSanguin groupe = 2;
+  int32 disponibles = 3;
+  bool critique = 4;
+}
