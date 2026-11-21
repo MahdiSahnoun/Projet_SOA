@@ -19,7 +19,7 @@ services:
   dons:
     build:
       context: .
-      dockerfile: services/dons/Dockerfile
+      dockerfile: dons/Dockerfile
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/dons_db
       DB_USER: ${DB_USER:-dons_user}

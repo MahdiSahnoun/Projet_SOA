@@ -53,7 +53,7 @@ public class DonneurService {
         if (!donneur.estMajeur(LocalDate.now(clock))) {
             throw new RequeteInvalideException("Le donneur doit être majeur");
         }
-        // Appel SOAP VerifierExistence (repli : accepté si le Registre est injoignable)
+        // Appel SOAP VerifierExistence (repli : accepté si le Registre est injoignable)............
         if (!registre.existe(r.identifiantNational())) {
             throw new RequeteInvalideException("Identifiant inconnu du registre national");
         }

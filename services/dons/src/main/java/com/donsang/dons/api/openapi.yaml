@@ -1,0 +1,643 @@
+openapi: 3.0.3
+info:
+  title: API Dons de sang
+  description: Service REST orchestrateur pour les donneurs, les dons, les demandes hospitalières et le stock.
+  version: v1
+servers:
+  - url: http://localhost:8081
+    description: Instance locale
+tags:
+  - name: Authentification
+  - name: Donneurs
+  - name: Dons
+  - name: Demandes hospitalières
+  - name: Poches
+  - name: Stock
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Authentification]
+      summary: Authentifier un utilisateur
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Jeton JWT émis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JetonReponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/signup:
+    post:
+      tags: [Authentification]
+      summary: Inscrire un donneur
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InscriptionDonneurRequest'
+      responses:
+        '201':
+          description: Donneur inscrit
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonneurReponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/donneurs:
+    post:
+      tags: [Donneurs]
+      summary: Inscrire un donneur
+      description: Inscription publique, sans émission de jeton.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InscriptionDonneurRequest'
+      responses:
+        '201':
+          description: Donneur inscrit
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonneurReponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/donneurs/{id}:
+    get:
+      tags: [Donneurs]
+      summary: Consulter son profil
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Profil du donneur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonneurReponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/dons:
+    post:
+      tags: [Dons]
+      summary: Proposer un don
+      description: Retourne 201 si la décision est prise, ou 202 si elle est différée.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposerDonRequest'
+      responses:
+        '201':
+          description: Don accepté ou refusé
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonReponse'
+        '202':
+          description: Décision différée
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonReponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    get:
+      tags: [Dons]
+      summary: Lister ses dons
+      responses:
+        '200':
+          description: Dons du donneur connecté
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DonReponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/dons/{id}:
+    get:
+      tags: [Dons]
+      summary: Consulter un don
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Don demandé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonReponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/demandes:
+    post:
+      tags: [Demandes hospitalières]
+      summary: Créer une demande de poches
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreerDemandeRequest'
+      responses:
+        '201':
+          description: Demande créée, acceptée ou en attente
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemandeReponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags: [Demandes hospitalières]
+      summary: Lister ses demandes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: Historique paginé des demandes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageDemandeReponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/demandes/{id}:
+    get:
+      tags: [Demandes hospitalières]
+      summary: Consulter une demande
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Demande demandée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemandeReponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/demandes/{id}/annulation:
+    patch:
+      tags: [Demandes hospitalières]
+      summary: Annuler une demande
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Demande annulée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemandeReponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/stocks:
+    get:
+      tags: [Stock]
+      summary: Consulter le stock disponible
+      parameters:
+        - name: groupeSanguin
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GroupeSanguin'
+        - name: codeBanque
+          in: query
+          required: false
+          description: Code de la banque. Omettre pour agréger toutes les banques.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Stock disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockReponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/v1/poches:
+    post:
+      tags: [Poches]
+      summary: Enregistrer une poche collectée
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnregistrerPocheRequest'
+      responses:
+        '201':
+          description: Poche enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PocheReponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  headers:
+    Location:
+      description: URI de la ressource créée.
+      schema:
+        type: string
+        format: uri
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    Page:
+      name: page
+      in: query
+      description: Numéro de page, à partir de 0.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      description: Nombre d'éléments par page.
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      description: Critère de tri Spring Data, par exemple dateDemande,desc.
+      schema:
+        type: string
+        default: dateDemande,desc
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Unauthorized:
+      description: Authentification absente ou refusée
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Forbidden:
+      description: Rôle insuffisant
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflict:
+      description: Conflit métier
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    ServiceUnavailable:
+      description: Service distant indisponible
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, motDePasse]
+      properties:
+        email:
+          type: string
+          format: email
+        motDePasse:
+          type: string
+          format: password
+    JetonReponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          format: int64
+          description: Durée de validité en secondes.
+    InscriptionDonneurRequest:
+      type: object
+      required: [nom, email, motDePasse, identifiantNational, dateNaissance, poids, groupeSanguin]
+      properties:
+        nom:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        motDePasse:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+        telephone:
+          type: string
+          maxLength: 20
+        identifiantNational:
+          type: string
+          maxLength: 20
+        dateNaissance:
+          type: string
+          format: date
+          description: Doit être antérieure à la date du jour.
+        poids:
+          type: number
+          format: float
+          minimum: 50
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+    DonneurReponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        nom:
+          type: string
+        email:
+          type: string
+          format: email
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        dateDernierDon:
+          type: string
+          format: date
+          nullable: true
+    ProposerDonRequest:
+      type: object
+      required: [codeBanque]
+      properties:
+        codeBanque:
+          type: string
+          minLength: 1
+    DonReponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        statut:
+          $ref: '#/components/schemas/StatutServiceDon'
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        codeBanque:
+          type: string
+        dateService:
+          type: string
+          format: date-time
+        motif:
+          type: string
+          nullable: true
+        numeroEnregistrement:
+          type: string
+          nullable: true
+    CreerDemandeRequest:
+      type: object
+      required: [groupeSanguin, quantite, urgence]
+      properties:
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        quantite:
+          type: integer
+          minimum: 1
+          maximum: 20
+        urgence:
+          $ref: '#/components/schemas/NiveauUrgence'
+    DemandeReponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        quantite:
+          type: integer
+        urgence:
+          $ref: '#/components/schemas/NiveauUrgence'
+        statut:
+          $ref: '#/components/schemas/StatutServiceDon'
+        dateDemande:
+          type: string
+          format: date-time
+        allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllocationReponse'
+    AllocationReponse:
+      type: object
+      properties:
+        codeBanque:
+          type: string
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        quantite:
+          type: integer
+    EnregistrerPocheRequest:
+      type: object
+      required: [groupeSanguin, volumeMl, dateCollecte, datePeremption]
+      properties:
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        volumeMl:
+          type: integer
+          minimum: 200
+          maximum: 600
+        dateCollecte:
+          type: string
+          format: date
+        datePeremption:
+          type: string
+          format: date
+    PocheReponse:
+      type: object
+      properties:
+        pocheId:
+          type: string
+        codeBanque:
+          type: string
+    StockReponse:
+      type: object
+      properties:
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        codeBanque:
+          type: string
+          nullable: true
+        disponibles:
+          type: integer
+    PageDemandeReponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/DemandeReponse'
+        number:
+          type: integer
+        size:
+          type: integer
+        numberOfElements:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+    GroupeSanguin:
+      type: string
+      enum: [A_POSITIF, A_NEGATIF, B_POSITIF, B_NEGATIF, AB_POSITIF, AB_NEGATIF, O_POSITIF, O_NEGATIF]
+    NiveauUrgence:
+      type: string
+      enum: [NORMALE, URGENTE, VITALE]
+    StatutServiceDon:
+      type: string
+      enum: [EN_ATTENTE, ACCEPTEE, REFUSEE, ANNULEE]
+    ProblemDetail:
+      type: object
+      description: Format RFC 7807 utilisé par l'API.
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        erreurs:
+          type: object
+          additionalProperties:
+            type: string

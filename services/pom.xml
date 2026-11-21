@@ -21,7 +21,9 @@
   <modules>
     <module>contrats/inventaire-grpc</module>
     <module>contrats/registre-soap</module>
-    <module>services/dons</module>
+    <module>config-server</module>
+    <module>discovery</module>
+    <module>dons</module>
     <!-- à ajouter par les autres membres : gateway, services/inventaire, services/registre, outils/simulateur -->
   </modules>
 

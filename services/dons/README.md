@@ -31,7 +31,7 @@ Documentation : `/v3/api-docs` (OpenAPI) et `/swagger-ui.html` (bouton « Author
 
 ```bash
 # à la racine du dépôt
-mvn -pl services/dons -am verify            # compile les contrats, lance tests unitaires (*Test) et d'intégration (*IT)
+mvn -f services/pom.xml -pl dons -am verify # compile les contrats, lance tests unitaires (*Test) et d'intégration (*IT)
 
 export JWT_SECRET="$(openssl rand -base64 48)"
 export DB_PASSWORD=...  COMPTES_TEST_MDP=...
