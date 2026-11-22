@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://soa.com/registre"
+           targetNamespace="http://soa.com/registre"
+           elementFormDefault="qualified">
+
+    <!-- ======================================================= -->
+    <!--  Enum groupe sanguin                                      -->
+    <!-- ======================================================= -->
+    <xs:simpleType name="GroupeSanguin">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="O_NEG"/>
+            <xs:enumeration value="O_POS"/>
+            <xs:enumeration value="A_NEG"/>
+            <xs:enumeration value="A_POS"/>
+            <xs:enumeration value="B_NEG"/>
+            <xs:enumeration value="B_POS"/>
+            <xs:enumeration value="AB_NEG"/>
+            <xs:enumeration value="AB_POS"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ======================================================= -->
+    <!--  Type Donneur (réponse)                                  -->
+    <!-- ======================================================= -->
+    <xs:complexType name="DonneurInfo">
+        <xs:sequence>
+            <xs:element name="id"             type="xs:string"/>
+            <xs:element name="nom"            type="xs:string"/>
+            <xs:element name="prenom"         type="xs:string"/>
+            <xs:element name="telephone"      type="xs:string"/>
+            <xs:element name="groupeSanguin"  type="tns:GroupeSanguin"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ======================================================= -->
+    <!--  T04 : VerifierExistence                                 -->
+    <!-- ======================================================= -->
+    <xs:element name="VerifierExistenceRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donneurId" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="VerifierExistenceResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="existe" type="xs:boolean"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ======================================================= -->
+    <!--  T08 : VerifierEligibilite                               -->
+    <!-- ======================================================= -->
+    <xs:element name="VerifierEligibiliteRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donneurId" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="VerifierEligibiliteResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="eligible"  type="xs:boolean"/>
+                <xs:element name="message"   type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ======================================================= -->
+    <!--  T08 : EnregistrerDon                                    -->
+    <!-- ======================================================= -->
+    <xs:element name="EnregistrerDonRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donneurId" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="EnregistrerDonResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="succes"   type="xs:boolean"/>
+                <xs:element name="message"  type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ======================================================= -->
+    <!--  T15 : ListerDonneursEligibles                           -->
+    <!-- ======================================================= -->
+    <xs:element name="ListerDonneursEligiblesRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="groupeSanguin" type="tns:GroupeSanguin"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="ListerDonneursEligiblesResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donneurs" type="tns:DonneurInfo"
+                            minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ======================================================= -->
+    <!--  Fault details                                           -->
+    <!-- ======================================================= -->
+    <xs:element name="DonneurInconnuFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donneurId" type="xs:string"/>
+                <xs:element name="message"   type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="DonneurIneligibleFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donneurId" type="xs:string"/>
+                <xs:element name="raison"    type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>
