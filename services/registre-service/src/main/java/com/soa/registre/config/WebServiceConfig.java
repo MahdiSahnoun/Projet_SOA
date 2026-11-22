@@ -37,7 +37,7 @@ public class WebServiceConfig extends WsConfigurerAdapter {
         DefaultWsdl11Definition wsdl = new DefaultWsdl11Definition();
         wsdl.setPortTypeName("RegistrePort");
         wsdl.setLocationUri("/ws");
-        wsdl.setTargetNamespace("http://soa.com/registre");
+        wsdl.setTargetNamespace("http://donsang.com/registre/v1");
         wsdl.setSchema(registreSchema);
         return wsdl;
     }
