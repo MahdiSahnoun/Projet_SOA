@@ -167,7 +167,7 @@ Aucun don n'est enregistré (transaction annulée) : `GET $DONS/dons` avec `$T99
 | Point | Client Dons (`RegistreClient`, `RegistreClientConfig`) | Serveur `registre-service` | |
 |---|---|---|---|
 | URL | `registre.url` = `http://localhost:8083/ws` | servlet `/ws/*`, port 8083 | ✅ |
-| Namespace | `http://donsang.com/registre/v1` | même XSD (copie exacte + opération 5 ajoutée) | ✅ |
+| Namespace | `http://donsang.com/registre/v1` | même XSD : module partagé `contrats/registre-soap` | ✅ |
 | Fault inconnu | code `Client` + texte qui commence par `Donneur inconnu` → 404 | `Client`, « Donneur inconnu du registre national : … » | ✅ (vérifié par test d'intégration) |
 | Fault inéligible | autre Fault `Client` → 409 | `Client`, « Donneur inéligible : … — motif » | ✅ |
 | Inéligible dans VerifierEligibilite | `eligible=false` + `motif` | idem, sans Fault | ✅ |
@@ -177,4 +177,3 @@ Aucun don n'est enregistré (transaction annulée) : `GET $DONS/dons` avec `$T99
 | Timeout | 2 s connexion / lecture | premier appel après démarrage parfois plus lent | ⚠️ faire un appel à blanc |
 | URL en Docker | `REGISTRE_URL` défaut `http://host.docker.internal:8083/ws` | dans le Compose racine : `registre-service:8083` | ⚠️ si les deux tournent dans le même Compose, mettre `REGISTRE_URL=http://registre-service:8083/ws` |
 | Postgres de Dons | `services/docker-compose.yml` publie **5432** | — | ⚠️ conflit avec le PostgreSQL local sur 5432 (d'où le conteneur sur 5435 ci-dessus) |
-| Opération 5 (`ListerDonneursEligiblesDetail`) | absente du XSD de Dons | présente | ✅ sans impact (Dons ne l'appelle pas) ; à ajouter chez Mahdi pour garder un seul contrat |

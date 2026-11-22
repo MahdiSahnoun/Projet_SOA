@@ -2,8 +2,6 @@ package com.soa.registre.endpoint;
 
 import com.donsang.registre.v1.EnregistrerDonRequest;
 import com.donsang.registre.v1.EnregistrerDonResponse;
-import com.donsang.registre.v1.ListerDonneursEligiblesDetailRequest;
-import com.donsang.registre.v1.ListerDonneursEligiblesDetailResponse;
 import com.donsang.registre.v1.ListerDonneursEligiblesRequest;
 import com.donsang.registre.v1.ListerDonneursEligiblesResponse;
 import com.donsang.registre.v1.VerifierEligibiliteRequest;
@@ -34,7 +32,6 @@ import java.time.LocalDate;
  *   T08 — VerifierEligibilite      : eligible, motif, prochainDonPossible ; Fault si inconnu
  *   T08 — EnregistrerDon           : numeroEnregistrement ; Fault si inconnu ou inéligible
  *   T15 — ListerDonneursEligibles  : identifiants nationaux éligibles d'un groupe
- *   T15 — ListerDonneursEligiblesDetail : idem + nom, prénom, téléphone (appel aux donneurs, T16)
  *
  * Ici on ne fait que traduire XML <-> Java : la logique métier est dans RegistreService.
  * Les exceptions annotées @SoapFault deviennent des SOAP Faults "Client".
@@ -110,29 +107,6 @@ public class RegistreEndpoint {
         ListerDonneursEligiblesResponse response = new ListerDonneursEligiblesResponse();
         for (Donneur d : registreService.listerDonneursEligibles(groupe)) {
             response.getIdentifiantNational().add(d.getId());
-        }
-        return response;
-    }
-
-    // ----------------------------------------------------------------
-    // T15 / T16 — ListerDonneursEligiblesDetail : même filtre, avec coordonnées
-    // ----------------------------------------------------------------
-
-    @PayloadRoot(namespace = NAMESPACE, localPart = "ListerDonneursEligiblesDetailRequest")
-    @ResponsePayload
-    public ListerDonneursEligiblesDetailResponse listerDonneursEligiblesDetail(
-            @RequestPayload ListerDonneursEligiblesDetailRequest request) {
-
-        GroupeSanguin groupe = registreService.groupeSanguin(request.getGroupe());
-
-        ListerDonneursEligiblesDetailResponse response = new ListerDonneursEligiblesDetailResponse();
-        for (Donneur d : registreService.listerDonneursEligibles(groupe)) {
-            ListerDonneursEligiblesDetailResponse.Donneur info = new ListerDonneursEligiblesDetailResponse.Donneur();
-            info.setIdentifiantNational(d.getId());
-            info.setNom(d.getNom());
-            info.setPrenom(d.getPrenom());
-            info.setTelephone(d.getTelephone());
-            response.getDonneur().add(info);
         }
         return response;
     }

@@ -75,30 +75,4 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-
-  <!-- Opération 5 : même filtre que l'opération 4, avec les coordonnées des donneurs
-       (appel aux donneurs, T16). Ajout : les opérations 1 à 4 sont inchangées. -->
-  <xs:element name="ListerDonneursEligiblesDetailRequest">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element name="groupe" type="xs:string"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="ListerDonneursEligiblesDetailResponse">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element name="donneur" minOccurs="0" maxOccurs="unbounded">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="identifiantNational" type="xs:string"/>
-              <xs:element name="nom" type="xs:string"/>
-              <xs:element name="prenom" type="xs:string"/>
-              <xs:element name="telephone" type="xs:string" minOccurs="0"/>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
 </xs:schema>

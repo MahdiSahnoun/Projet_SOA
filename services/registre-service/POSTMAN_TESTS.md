@@ -124,35 +124,7 @@ Même requête avec `<reg:groupe>O_NEG</reg:groupe>`.
 </soapenv:Envelope>
 ```
 **Réponse attendue :** `identifiantNational` = TN-00000001 et TN-00000009 ; **pas** TN-00000014 (contre-indication).
-
-## T15 / T16 — ListerDonneursEligiblesDetail (même filtre, avec coordonnées)
-
-### Cas : groupe O_NEGATIF
-```xml
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-                  xmlns:reg="http://donsang.com/registre/v1">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <reg:ListerDonneursEligiblesDetailRequest>
-      <reg:groupe>O_NEGATIF</reg:groupe>
-    </reg:ListerDonneursEligiblesDetailRequest>
-  </soapenv:Body>
-</soapenv:Envelope>
-```
-**Réponse attendue :**
-```xml
-<ns2:donneur>
-  <ns2:identifiantNational>TN-00000001</ns2:identifiantNational>
-  <ns2:nom>Ben Salah</ns2:nom>
-  <ns2:prenom>Ahmed</ns2:prenom>
-  <ns2:telephone>+216 20 123 401</ns2:telephone>
-</ns2:donneur>
-<ns2:donneur>
-  <ns2:identifiantNational>TN-00000009</ns2:identifiantNational>
-  ...
-</ns2:donneur>
-```
-Groupe invalide (ex. `O_NEG`) → même SOAP Fault Client « Groupe sanguin invalide » que les autres opérations.
+Groupe invalide (ex. `O_NEG`) → SOAP Fault Client « Groupe sanguin invalide ».
 
 ---
 
