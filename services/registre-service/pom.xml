@@ -20,6 +20,20 @@
         <java.version>21</java.version>
     </properties>
 
+    <!-- Testcontainers 1.21.4 : la version gérée par Spring Boot 3.3.5 (1.19.x) envoie une
+         version d'API trop ancienne et Docker Engine 29 la refuse (HTTP 400). -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>1.21.4</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Spring Web Services (SOAP) -->
         <dependency>
@@ -72,6 +86,22 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Tests d'intégration sur un vrai PostgreSQL (data.sql utilise la syntaxe Postgres) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -81,7 +111,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- JAXB2 : génère les classes Java depuis registre.xsd -->
+            <!-- JAXB2 : génère les classes Java depuis registre.xsd (contrat partagé avec Dons,
+                 namespace http://donsang.com/registre/v1 → même package que côté client) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>jaxb2-maven-plugin</artifactId>
@@ -99,8 +130,8 @@
                         <source>src/main/resources/xsd/registre.xsd</source>
                     </sources>
                     <outputDirectory>${project.build.directory}/generated-sources/jaxb</outputDirectory>
-                    <clearOutputDir>false</clearOutputDir>
-                    <packageName>com.soa.registre.generated</packageName>
+                    <clearOutputDir>true</clearOutputDir>
+                    <packageName>com.donsang.registre.v1</packageName>
                 </configuration>
             </plugin>
         </plugins>
