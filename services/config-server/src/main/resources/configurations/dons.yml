@@ -1,0 +1,34 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://dons_db:5432/dons_db}
+    username: ${DB_USER:dons_user}
+    password: ${DB_PASSWORD:dons_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+
+grpc:
+  client:
+    inventaire:
+      address: ${INVENTAIRE_GRPC_ADDRESS:static://inventaire-service:9090}
+      negotiation-type: plaintext
+
+inventaire:
+  deadline-ms: ${INVENTAIRE_DEADLINE_MS:2000}
+
+registre:
+  url: ${REGISTRE_URL:http://registre-service:8083/ws}
+  timeout-ms: ${REGISTRE_TIMEOUT_MS:2000}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://discovery:8761/eureka/}
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false

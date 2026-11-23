@@ -5,6 +5,9 @@ grpc:
     security:
       enabled: false
 
+server:
+  port: 8080
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5435/inventaire_db
@@ -27,9 +30,14 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
   instance:
-    prefer-ip-address: true
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false
+    non-secure-port: 8080
+    status-page-url: http://localhost:8080/actuator/info
+    home-page-url: http://localhost:8080/
+    health-check-url: http://localhost:8080/actuator/health
 
 inventaire:
   stock-critique-seuil: ${INVENTAIRE_STOCK_CRITIQUE_SEUIL:3}

@@ -24,6 +24,7 @@
     <module>config-server</module>
     <module>discovery</module>
     <module>dons</module>
+    <module>inventaire-service</module>
     <module>registre-service</module>
   </modules>
 

@@ -1,7 +1,24 @@
+name: projet-soa
+
 services:
+  config-server:
+    build:
+      context: .
+      dockerfile: services/config-server/Dockerfile
+    ports:
+      - "8888:8888"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8888/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
   postgresql:
     container_name: ms_pg_sql
-    image: postgres
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -38,7 +55,7 @@ services:
       - microservices-net
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.6.2
     container_name: zookeeper
     environment:
       ZOOKEEPER_SERVER_ID: 1
@@ -48,20 +65,23 @@ services:
       - "22181:2181"
     networks:
       - microservices-net
+
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.6.2
     container_name: ms_kafka
     ports:
       - "9092:9092"
     depends_on:
       - zookeeper
     environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
     networks:
       - microservices-net
 
@@ -69,27 +89,137 @@ services:
     container_name: ms-mail-dev
     image: maildev/maildev
     ports:
-      - 1080:1080
-      - 1025:1025
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - microservices-net
+
+  discovery:
+    build:
+      context: .
+      dockerfile: services/discovery/Dockerfile
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_INSTANCE_HOSTNAME: discovery
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  dons_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dons_db
+      POSTGRES_USER: ${DB_USER:-dons_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dons_password}
+    ports:
+      - "5436:5432"
+    volumes:
+      - dons_postgres:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  inventaire_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventaire_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - inventaire_postgres:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventaire_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   registre_db:
-    container_name: registre_pg_sql
-    image: postgres:16
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: registre_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      PGDATA: /data/postgres
-    volumes:
-      - registre_postgres:/data/postgres
     ports:
       - "5434:5432"
+    volumes:
+      - registre_postgres:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d registre_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dons:
+    build:
+      context: .
+      dockerfile: services/dons/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://dons_db:5432/dons_db
+      DB_USER: ${DB_USER:-dons_user}
+      DB_PASSWORD: ${DB_PASSWORD:-dons_password}
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: localhost
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-local-development-change-me}
+      COMPTES_TEST_MDP: ${COMPTES_TEST_MDP:-}
+      INVENTAIRE_GRPC_ADDRESS: static://inventaire-service:9090
+      REGISTRE_URL: http://registre-service:8083/ws
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery:
+        condition: service_started
+      dons_db:
+        condition: service_healthy
+      inventaire-service:
+        condition: service_started
+      registre-service:
+        condition: service_started
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  inventaire-service:
+    build:
+      context: .
+      dockerfile: services/inventaire-service/Dockerfile
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://inventaire_db:5432/inventaire_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: localhost
+    depends_on:
+      inventaire_db:
+        condition: service_healthy
+      discovery:
+        condition: service_started
     networks:
       - microservices-net
     restart: unless-stopped
 
   registre-service:
-    container_name: registre-service
     build:
       context: .
       dockerfile: services/registre-service/Dockerfile
@@ -101,8 +231,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: localhost
     depends_on:
-      - registre_db
+      registre_db:
+        condition: service_healthy
+      discovery:
+        condition: service_started
     networks:
       - microservices-net
     restart: unless-stopped
@@ -114,4 +248,6 @@ networks:
 volumes:
   postgres:
   pgadmin:
+  dons_postgres:
+  inventaire_postgres:
   registre_postgres:
