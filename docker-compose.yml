@@ -133,7 +133,7 @@ services:
     environment:
       POSTGRES_DB: inventaire_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${INVENTAIRE_DB_PASSWORD:-postgres}
     ports:
       - "5435:5432"
     volumes:
@@ -151,7 +151,7 @@ services:
     environment:
       POSTGRES_DB: registre_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${REGISTRE_DB_PASSWORD:-postgres}
     ports:
       - "5434:5432"
     volumes:
@@ -178,7 +178,7 @@ services:
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: localhost
       JWT_SECRET: ${JWT_SECRET:-change-me-in-local-development-change-me}
-      COMPTES_TEST_MDP: ${COMPTES_TEST_MDP:-}
+      COMPTES_TEST_MDP: ${COMPTES_TEST_MDP:-Demo2026!}
       INVENTAIRE_GRPC_ADDRESS: static://inventaire-service:9090
       REGISTRE_URL: http://registre-service:8083/ws
     depends_on:
@@ -206,7 +206,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://inventaire_db:5432/inventaire_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${INVENTAIRE_DB_PASSWORD:-postgres}
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: localhost
@@ -228,7 +228,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://registre_db:5432/registre_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${REGISTRE_DB_PASSWORD:-postgres}
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: localhost
