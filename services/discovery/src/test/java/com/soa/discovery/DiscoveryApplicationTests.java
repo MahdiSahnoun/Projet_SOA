@@ -9,4 +9,5 @@ class DiscoveryApplicationTests {
 	@Test
 	void contextLoads() {
 	}
+
 }

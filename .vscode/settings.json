@@ -1,0 +1,7 @@
+{
+  "java.project.exclusionPatterns": [
+    "**/target/**"
+  ],
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.import.maven.enabled": true
+}
