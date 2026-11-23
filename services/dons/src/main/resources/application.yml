@@ -8,15 +8,15 @@ spring:
   config:
     import: ${SPRING_CONFIG_IMPORT:optional:configserver:http://localhost:8888}
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/dons_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5436/dons_db}   # dons_db du docker-compose.yml
     username: ${DB_USER:dons_user}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:dons_password}
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: update          # suffisant pour le projet ; Flyway serait l'étape suivante
 
-# Client gRPC vers Inventaire (nom DNS Docker en conteneur : static://inventaire:9090)
+# Client gRPC vers Inventaire (en Docker : static://inventaire-service:9090, fourni par docker-compose.yml)
 grpc:
   client:
     inventaire:

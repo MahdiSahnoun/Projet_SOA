@@ -1,9 +1,13 @@
+# Configuration de Dons servie par le Config Server.
+# Valeurs par défaut = lancement LOCAL (java -jar) : tout est sur localhost.
+# En Docker, docker-compose.yml fournit les adresses des conteneurs via les variables
+# (DB_URL, REGISTRE_URL, INVENTAIRE_GRPC_ADDRESS, EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE).
 server:
   port: 8081
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://dons_db:5432/dons_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5436/dons_db}
     username: ${DB_USER:dons_user}
     password: ${DB_PASSWORD:dons_password}
     driver-class-name: org.postgresql.Driver
@@ -15,20 +19,20 @@ spring:
 grpc:
   client:
     inventaire:
-      address: ${INVENTAIRE_GRPC_ADDRESS:static://inventaire-service:9090}
+      address: ${INVENTAIRE_GRPC_ADDRESS:static://localhost:9090}
       negotiation-type: plaintext
 
 inventaire:
   deadline-ms: ${INVENTAIRE_DEADLINE_MS:2000}
 
 registre:
-  url: ${REGISTRE_URL:http://registre-service:8083/ws}
+  url: ${REGISTRE_URL:http://localhost:8083/ws}
   timeout-ms: ${REGISTRE_TIMEOUT_MS:2000}
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://discovery:8761/eureka/}
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
   instance:
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     prefer-ip-address: false
