@@ -16,6 +16,20 @@
   <name>registre-service</name>
   <description>Service SOAP Registre — Plateforme de dons de sang</description>
 
+  <!-- Testcontainers 1.21.4 : la version gérée par Spring Boot 3.3.5 (1.19.x) envoie une
+       version d'API trop ancienne et Docker Engine 29 la refuse (HTTP 400). -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.21.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
 
     <!-- Contrat SOAP partagé (XSD + classes JAXB com.donsang.registre.v1) -->
@@ -74,6 +88,22 @@
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Tests d'intégration T13 sur un vrai PostgreSQL (data.sql utilise la syntaxe Postgres) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
 

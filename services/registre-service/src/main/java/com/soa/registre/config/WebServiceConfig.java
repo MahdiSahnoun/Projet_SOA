@@ -15,8 +15,10 @@ import org.springframework.xml.xsd.XsdSchema;
 /**
  * Configuration Spring-WS.
  *
- * - MessageDispatcherServlet mappé sur /ws/*
+ * - MessageDispatcherServlet mappé sur /ws/* : le client Dons envoie ses requêtes
+ *   sur http://localhost:8083/ws (propriété registre.url côté Dons)
  * - DefaultWsdl11Definition nommée "registre" → WSDL disponible sur /ws/registre.wsdl
+ * - Namespace = targetNamespace du registre.xsd partagé avec Dons
  */
 @EnableWs
 @Configuration

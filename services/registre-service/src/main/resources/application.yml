@@ -1,5 +1,27 @@
+# Valeurs par défaut du service Registre : il démarre sans Config Server.
+# Si le Config Server répond, registre-service.yml (mêmes valeurs) les remplace.
+# En Docker, seules SPRING_DATASOURCE_URL / USERNAME / PASSWORD sont à fournir.
+server:
+  port: 8083
+
 spring:
   application:
     name: registre-service
   config:
     import: optional:configserver:http://localhost:8888
+
+  # Base locale (docker compose up registre_db) ; remplacée par SPRING_DATASOURCE_* en Docker
+  datasource:
+    url: jdbc:postgresql://localhost:5434/registre_db
+    username: postgres
+    password: postgres
+
+  jpa:
+    hibernate:
+      ddl-auto: update                    # crée la table donneur
+    defer-datasource-initialization: true # ... avant d'exécuter data.sql
+
+  # Données fictives TN-00000001 à TN-00000015 (data.sql), aussi sur PostgreSQL
+  sql:
+    init:
+      mode: always

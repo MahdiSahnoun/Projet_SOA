@@ -1,0 +1,35 @@
+grpc:
+  server:
+    port: 9090
+    reflection-service-enabled: true
+    security:
+      enabled: false
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5435/inventaire_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  sql:
+    init:
+      mode: always
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+inventaire:
+  stock-critique-seuil: ${INVENTAIRE_STOCK_CRITIQUE_SEUIL:3}

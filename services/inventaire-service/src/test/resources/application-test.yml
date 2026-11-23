@@ -1,0 +1,13 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration
+eureka:
+  client:
+    enabled: false
+grpc:
+  server:
+    port: -1
