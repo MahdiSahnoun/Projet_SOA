@@ -1,11 +1,11 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /src
 COPY services/config-server/pom.xml services/config-server/pom.xml
 COPY services/config-server/src services/config-server/src
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -f services/config-server/pom.xml -B -q clean package -DskipTests
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /src/services/config-server/target/*.jar app.jar
 EXPOSE 8888

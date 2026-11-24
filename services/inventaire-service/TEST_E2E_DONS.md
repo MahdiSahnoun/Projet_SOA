@@ -3,7 +3,7 @@
 ## Prérequis
 
 - Docker Desktop actif.
-- Java 21.
+- Java 17.
 - Maven.
 - `curl`.
 - `grpcurl`.
