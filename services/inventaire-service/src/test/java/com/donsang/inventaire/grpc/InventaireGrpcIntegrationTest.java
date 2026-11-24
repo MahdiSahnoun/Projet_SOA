@@ -7,6 +7,7 @@ import com.donsang.inventaire.repository.PocheSangRepository;
 import com.donsang.inventaire.service.InventaireService;
 import com.donsang.inventaire.domain.PocheSang;
 import com.donsang.inventaire.domain.StatutPoche;
+import com.donsang.inventaire.service.RegleDePeremption;
 import com.donsang.inventaire.service.StockChangeEvent;
 import com.donsang.inventaire.service.StockInsuffisantException;
 import com.donsang.inventaire.v1.AjoutPocheRequest;
@@ -90,6 +91,9 @@ class InventaireGrpcIntegrationTest {
 
     @Autowired
     private ApplicationEvents evenements;
+
+    @Autowired
+    private RegleDePeremption regleDePeremption;
 
     private InventaireServiceGrpc.InventaireServiceBlockingStub stub;
 
@@ -309,6 +313,30 @@ class InventaireGrpcIntegrationTest {
         assertThat(reponse.getAllocations(0).getBanqueId()).isEqualTo("BANQUE-A");
         assertThat(poches.findById("POCHE-PERIMEE").orElseThrow().getStatut())
                 .isEqualTo(StatutPoche.PERIMEE);
+    }
+
+    /** T41 — Seules les poches DISPONIBLE passent en PERIMEE ; une poche RESERVEE est laissée à sa demande. */
+    @Test
+    void appliquerPeremptionNeTraiteQueLesPochesDisponibles() {
+        Banque banqueA = banques.findById("BANQUE-A").orElseThrow();
+        poches.save(new PocheSang("POCHE-PER-DISPO", banqueA, GroupeSanguin.O_NEGATIF,
+                LocalDate.now().minusDays(42), LocalDate.now()));
+        PocheSang reservee = new PocheSang("POCHE-PER-RESA", banqueA, GroupeSanguin.O_NEGATIF,
+                LocalDate.now().minusDays(42), LocalDate.now());
+        reservee.reserver("DEM-PER-RESA");
+        poches.save(reservee);
+        poches.save(new PocheSang("POCHE-PER-OK", banqueA, GroupeSanguin.O_NEGATIF,
+                LocalDate.now().minusDays(1), LocalDate.now().plusDays(10)));
+
+        regleDePeremption.appliquerPeremption();
+
+        assertThat(poches.findById("POCHE-PER-DISPO").orElseThrow().getStatut())
+                .isEqualTo(StatutPoche.PERIMEE);
+        PocheSang apres = poches.findById("POCHE-PER-RESA").orElseThrow();
+        assertThat(apres.getStatut()).isEqualTo(StatutPoche.RESERVEE);
+        assertThat(apres.getReferenceReservation()).isEqualTo("DEM-PER-RESA");
+        assertThat(poches.findById("POCHE-PER-OK").orElseThrow().getStatut())
+                .isEqualTo(StatutPoche.DISPONIBLE);
     }
 
     @Test

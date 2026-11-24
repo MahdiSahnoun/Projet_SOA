@@ -62,17 +62,21 @@ public class RegleDePeremption {
         return estPerimee(datePeremption, LocalDate.now(clock));
     }
 
-    /** T41 — Chaque nuit à minuit (et au démarrage) : passe en PERIMEE les poches dont la date est atteinte. */
+    /**
+     * T41 — Chaque nuit à minuit (et au démarrage) : passe en PERIMEE les poches DISPONIBLE
+     * dont la date est atteinte.
+     * Une poche RESERVEE n'est pas touchée : elle appartient à une demande en cours, que
+     * Dons confirmera (SORTIE) ou libérera ; libérée, elle redevient DISPONIBLE et sera
+     * alors périmée au passage suivant (la réservation refuse déjà les poches périmées).
+     */
     @EventListener(ApplicationReadyEvent.class)
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void appliquerPeremption() {
         LocalDate aujourdhui = LocalDate.now(clock);
         boolean modifie = false;
-        for (PocheSang poche : poches.findAll()) {
-            if (poche.getStatut() != StatutPoche.PERIMEE
-                    && poche.getStatut() != StatutPoche.SORTIE
-                    && estPerimee(poche.getDatePeremption(), aujourdhui)) {
+        for (PocheSang poche : poches.findByStatut(StatutPoche.DISPONIBLE)) {
+            if (estPerimee(poche.getDatePeremption(), aujourdhui)) {
                 poche.setStatut(StatutPoche.PERIMEE);
                 poches.save(poche);
                 modifie = true;
