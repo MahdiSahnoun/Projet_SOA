@@ -7,6 +7,7 @@ import com.donsang.inventaire.repository.PocheSangRepository;
 import com.donsang.inventaire.service.InventaireService;
 import com.donsang.inventaire.domain.PocheSang;
 import com.donsang.inventaire.domain.StatutPoche;
+import com.donsang.inventaire.service.StockChangeEvent;
 import com.donsang.inventaire.service.StockInsuffisantException;
 import com.donsang.inventaire.v1.AjoutPocheRequest;
 import com.donsang.inventaire.v1.InventaireServiceGrpc;
@@ -31,6 +32,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -54,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         "grpc.server.port=-1"
 })
 @Testcontainers(disabledWithoutDocker = true)
+@RecordApplicationEvents
 class InventaireGrpcIntegrationTest {
 
     @Container
@@ -83,6 +87,9 @@ class InventaireGrpcIntegrationTest {
 
     @Autowired
     private InventaireGrpcService grpcService;
+
+    @Autowired
+    private ApplicationEvents evenements;
 
     private InventaireServiceGrpc.InventaireServiceBlockingStub stub;
 
@@ -200,6 +207,20 @@ class InventaireGrpcIntegrationTest {
                 .build());
 
         assertThat(reponse.getOk()).isTrue();
+    }
+
+    /** Une confirmation de sortie = un seul événement de stock (donc une seule diffusion StreamStocks). */
+    @Test
+    void confirmerSortiePublieUnSeulEvenementDeStock() {
+        inventaire.ajouterPoche("POCHE-TEST-EVT", "BANQUE-B",
+                GroupeSanguin.A_NEGATIF, 450,
+                LocalDate.now().minusDays(1), LocalDate.now().plusDays(42));
+        inventaire.reserver(List.of(GroupeSanguin.A_NEGATIF), 1, "DEM-TEST-EVT");
+        evenements.clear();
+
+        inventaire.confirmerSortie("DEM-TEST-EVT");
+
+        assertThat(evenements.stream(StockChangeEvent.class).count()).isEqualTo(1);
     }
 
     @Test

@@ -181,7 +181,6 @@ public class InventaireService {
             poches.save(poche);
         }
         publierApresCommit();
-        publierApresCommit();
     }
 
     @Transactional
