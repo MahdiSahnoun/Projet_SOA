@@ -176,7 +176,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-dons_password}
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
-      EUREKA_INSTANCE_HOSTNAME: localhost
+      EUREKA_INSTANCE_HOSTNAME: dons
       JWT_SECRET: ${JWT_SECRET:-change-me-in-local-development-change-me}
       COMPTES_TEST_MDP: ${COMPTES_TEST_MDP:-Demo2026!}
       INVENTAIRE_GRPC_ADDRESS: static://inventaire-service:9090
@@ -209,7 +209,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${INVENTAIRE_DB_PASSWORD:-postgres}
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
-      EUREKA_INSTANCE_HOSTNAME: localhost
+      EUREKA_INSTANCE_HOSTNAME: inventaire-service
     depends_on:
       inventaire_db:
         condition: service_healthy
@@ -231,7 +231,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${REGISTRE_DB_PASSWORD:-postgres}
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
-      EUREKA_INSTANCE_HOSTNAME: localhost
+      EUREKA_INSTANCE_HOSTNAME: registre-service
     depends_on:
       registre_db:
         condition: service_healthy

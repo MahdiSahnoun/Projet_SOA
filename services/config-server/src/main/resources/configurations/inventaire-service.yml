@@ -35,9 +35,7 @@ eureka:
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     prefer-ip-address: false
     non-secure-port: 8080
-    status-page-url: http://localhost:8080/actuator/info
-    home-page-url: http://localhost:8080/
-    health-check-url: http://localhost:8080/actuator/health
+    # Pas d'URL écrite en dur : Eureka construit status/health/home à partir de hostname
 
 inventaire:
   stock-critique-seuil: ${INVENTAIRE_STOCK_CRITIQUE_SEUIL:3}

@@ -28,5 +28,5 @@ eureka:
   instance:
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     prefer-ip-address: false
-    status-page-url: http://localhost:8083/ws/registre.wsdl
-    home-page-url: http://localhost:8083/
+    # Chemin relatif : Eureka le préfixe par http://{hostname}:{port}
+    status-page-url-path: /ws/registre.wsdl
