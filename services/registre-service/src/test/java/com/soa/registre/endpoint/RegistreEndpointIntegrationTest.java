@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
 import org.springframework.ws.soap.SoapFault;
+import org.springframework.ws.soap.SoapFaultDetail;
+import org.springframework.ws.soap.SoapFaultDetailElement;
 import org.springframework.ws.soap.SoapMessage;
 import org.springframework.ws.test.server.MockWebServiceClient;
 import org.springframework.ws.test.server.ResponseMatcher;
@@ -14,9 +16,17 @@ import org.springframework.xml.transform.StringSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
+import javax.xml.namespace.QName;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMResult;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,7 +88,8 @@ class RegistreEndpointIntegrationTest {
     void verifierEligibilite_donneurInconnu_faultClient() {
         client.sendRequest(withPayload(requete("VerifierEligibiliteRequest", "TN-99999999")))
                 .andExpect(clientOrSenderFault())
-                .andExpect(faultClientCommencantPar("Donneur inconnu"));
+                .andExpect(faultClientCommencantPar("Donneur inconnu"))
+                .andExpect(detailDeFault("VerifierEligibiliteFault", "DONNEUR_INCONNU", "Donneur inconnu"));
     }
 
     /** Contrat Dons : un inéligible n'est PAS un Fault ici, mais eligible=false + motif. */
@@ -102,7 +113,8 @@ class RegistreEndpointIntegrationTest {
     void enregistrerDon_contreIndication_faultDonneurInelegible() {
         client.sendRequest(withPayload(enregistrerDon("TN-00000014", "O_NEGATIF")))
                 .andExpect(clientOrSenderFault())
-                .andExpect(faultClientCommencantPar("Donneur inéligible"));
+                .andExpect(faultClientCommencantPar("Donneur inéligible"))
+                .andExpect(detailDeFault("EnregistrerDonFault", "DONNEUR_INELIGIBLE", "Donneur inéligible"));
     }
 
     /** Donneur réservé à ce test (TN-00000003, A_NEGATIF) : sa mise à jour ne gêne pas les autres cas. */
@@ -149,6 +161,18 @@ class RegistreEndpointIntegrationTest {
                 .andExpect(xpath("//r:identifiantNational[. = 'TN-00000011']", PREFIXES).doesNotExist());
     }
 
+    @Test
+    void listerDonneursEligibles_groupeInvalide_faultAvecDetail() {
+        String payload = "<r:ListerDonneursEligiblesRequest xmlns:r='" + NS + "'>"
+                + "<r:groupe>Z_POSITIF</r:groupe>"
+                + "</r:ListerDonneursEligiblesRequest>";
+
+        client.sendRequest(withPayload(new StringSource(payload)))
+                .andExpect(clientOrSenderFault())
+                .andExpect(faultClientCommencantPar("Groupe sanguin invalide"))
+                .andExpect(detailDeFault("ListerDonneursEligiblesFault", "GROUPE_INVALIDE", "Groupe sanguin invalide"));
+    }
+
     // ------------------------------------------------------------ Outils
 
     private static StringSource requete(String element, String identifiantNational) {
@@ -175,6 +199,32 @@ class RegistreEndpointIntegrationTest {
             assertThat(fault).as("SOAP Fault attendu").isNotNull();
             assertThat(fault.getFaultCode().getLocalPart()).isEqualTo("Client");
             assertThat(fault.getFaultStringOrReason()).startsWith(prefixe);
+        };
+    }
+
+    /**
+     * Vérifie le &lt;detail&gt; déclaré dans le WSDL : un seul élément {@code element}
+     * (type ErreurRegistre) avec le code attendu et un message qui commence par {@code prefixeMessage}.
+     */
+    private static ResponseMatcher detailDeFault(String element, String code, String prefixeMessage) {
+        return (request, response) -> {
+            SoapFaultDetail detail = ((SoapMessage) response).getSoapBody().getFault().getFaultDetail();
+            assertThat(detail).as("<detail> attendu dans le SOAP Fault").isNotNull();
+
+            List<SoapFaultDetailElement> entrees = new ArrayList<>();
+            detail.getDetailEntries().forEachRemaining(entrees::add);
+            assertThat(entrees).hasSize(1);
+            assertThat(entrees.get(0).getName()).isEqualTo(new QName(NS, element));
+
+            DOMResult dom = new DOMResult();
+            try {
+                TransformerFactory.newInstance().newTransformer().transform(entrees.get(0).getSource(), dom);
+            } catch (TransformerException e) {
+                throw new AssertionError(e);
+            }
+            Element racine = ((Document) dom.getNode()).getDocumentElement();
+            assertThat(racine.getElementsByTagNameNS(NS, "code").item(0).getTextContent()).isEqualTo(code);
+            assertThat(racine.getElementsByTagNameNS(NS, "message").item(0).getTextContent()).startsWith(prefixeMessage);
         };
     }
 }

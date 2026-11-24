@@ -34,7 +34,8 @@ import java.time.LocalDate;
  *   T15 — ListerDonneursEligibles  : identifiants nationaux éligibles d'un groupe
  *
  * Ici on ne fait que traduire XML <-> Java : la logique métier est dans RegistreService.
- * Les exceptions annotées @SoapFault deviennent des SOAP Faults "Client".
+ * Les exceptions annotées @SoapFault deviennent des SOAP Faults "Client" ;
+ * RegistreFaultResolver y ajoute le détail XxxFault déclaré dans le WSDL.
  */
 @Endpoint
 public class RegistreEndpoint {
