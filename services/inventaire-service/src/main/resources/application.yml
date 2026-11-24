@@ -11,6 +11,13 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update
+    # Crée les tables avant d'exécuter data.sql
+    defer-datasource-initialization: true
+  # data.sql (banques et poches de démo) chargé même sans Config Server ;
+  # rejouable sans risque : chaque INSERT se termine par ON CONFLICT DO NOTHING
+  sql:
+    init:
+      mode: always
 
 server:
   port: ${SERVER_PORT:8080}
