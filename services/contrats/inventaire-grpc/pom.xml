@@ -13,6 +13,10 @@
   <!-- Contrat gRPC d'Inventaire : génère les stubs Java partagés par le serveur et le client -->
   <artifactId>inventaire-grpc</artifactId>
 
+  <properties>
+    <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.grpc</groupId>
@@ -30,14 +34,34 @@
   </dependencies>
 
   <build>
+    <!--
+      os-maven-plugin définit ${os.detected.classifier} (ex. windows-x86_64), utilisé ci-dessous
+      pour télécharger protoc et protoc-gen-grpc-java adaptés au système.
+      - En extension : Maven en ligne de commande (mvn, Docker).
+      - En plugin (goal detect) : les IDE basés sur m2e (VS Code Java, Eclipse) ignorent les
+        extensions du pom mais exécutent ce goal (mapping m2e fourni par le plugin lui-même).
+    -->
     <extensions>
       <extension>
         <groupId>kr.motd.maven</groupId>
         <artifactId>os-maven-plugin</artifactId>
-        <version>1.7.1</version>
+        <version>${os-maven-plugin.version}</version>
       </extension>
     </extensions>
     <plugins>
+      <plugin>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>${os-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>detect</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.xolstice.maven.plugins</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
