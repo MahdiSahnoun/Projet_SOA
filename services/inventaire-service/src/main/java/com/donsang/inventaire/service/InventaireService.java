@@ -91,7 +91,7 @@ public class InventaireService {
                 .distinct()
                 .toList();
         List<PocheSang> candidates = poches.trouverPochesDisponiblesVerrouillees(
-                groupesDemandes);
+                groupesDemandes, quantite);
 
         List<PocheDisponible> disponibles = candidates.stream()
                 .map(poche -> new PocheDisponible(

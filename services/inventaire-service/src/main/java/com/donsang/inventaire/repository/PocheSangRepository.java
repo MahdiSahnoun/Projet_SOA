@@ -25,6 +25,11 @@ public interface PocheSangRepository extends JpaRepository<PocheSang, String> {
     boolean existsByReferenceReservation(String referenceReservation);
     Optional<PocheSang> findFirstByReferenceReservation(String referenceReservation);
 
+    /**
+     * Verrouille au plus {@code limite} poches disponibles, celles qui périment en premier.
+     * LIMIT est indispensable : sans lui, FOR UPDATE verrouille toutes les poches du groupe
+     * et une réservation concurrente (SKIP LOCKED) n'en voit plus aucune.
+     */
     @Query(value = """
             SELECT p.*
             FROM poches p
@@ -32,10 +37,12 @@ public interface PocheSangRepository extends JpaRepository<PocheSang, String> {
               AND p.date_peremption > CURRENT_DATE
               AND p.groupe IN (:groupes)
             ORDER BY p.date_peremption ASC
+            LIMIT :limite
             FOR UPDATE OF p SKIP LOCKED
             """, nativeQuery = true)
     List<PocheSang> trouverPochesDisponiblesVerrouillees(
-            @Param("groupes") List<String> groupes);
+            @Param("groupes") List<String> groupes,
+            @Param("limite") int limite);
 
     @Query(value = """
             SELECT p.banque_id AS banqueId,

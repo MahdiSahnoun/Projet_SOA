@@ -370,16 +370,20 @@ class InventaireGrpcIntegrationTest {
         });
 
         depart.countDown();
+        try {
+            // Les deux réservations doivent réussir : chacune verrouille une seule poche
+            assertThat(premiere.get()).isNotEmpty();
+            assertThat(seconde.get()).isNotEmpty();
+        } finally {
+            executor.shutdownNow();
+        }
 
+        // Lecture APRÈS la fin des deux transactions
         PocheSang concA = poches.findById("POCHE-CONC-A").orElseThrow();
         PocheSang concB = poches.findById("POCHE-CONC-B").orElseThrow();
-        assertThat(premiere.get()).isNotEmpty();
-        assertThat(seconde.get()).isNotEmpty();
-
-        assertThat(concA.getReferenceReservation())
-                .isNotEqualTo(concB.getReferenceReservation());
-        assertThat(concA.getReferenceReservation()).isNotBlank();
-        assertThat(concB.getReferenceReservation()).isNotBlank();
-        executor.shutdownNow();
+        assertThat(concA.getStatut()).isEqualTo(StatutPoche.RESERVEE);
+        assertThat(concB.getStatut()).isEqualTo(StatutPoche.RESERVEE);
+        assertThat(List.of(concA.getReferenceReservation(), concB.getReferenceReservation()))
+                .containsExactlyInAnyOrder("DEM-CONC-A", "DEM-CONC-B");
     }
 }
