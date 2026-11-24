@@ -25,7 +25,11 @@ import com.donsang.dons.client.RegistreClient;
 import com.donsang.dons.depot.HopitalRepository;
 import com.donsang.dons.domaine.Hopital;
 
-@SpringBootTest
+// Pas de Config Server ni d'Eureka pendant les tests (sinon dons.yml remplace la base H2 du profil test)
+@SpringBootTest(properties = {
+        "spring.cloud.config.enabled=false",
+        "eureka.client.enabled=false"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthApiIT {

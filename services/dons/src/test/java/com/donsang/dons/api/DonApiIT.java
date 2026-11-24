@@ -31,7 +31,11 @@ import com.donsang.dons.depot.DonneurRepository;
 import com.donsang.dons.securite.JwtService;
 
 /** Parcours d'un don (REST -> SOAP -> gRPC) avec Registre et Inventaire simulés. */
-@SpringBootTest
+// Pas de Config Server ni d'Eureka pendant les tests (sinon dons.yml remplace la base H2 du profil test)
+@SpringBootTest(properties = {
+        "spring.cloud.config.enabled=false",
+        "eureka.client.enabled=false"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class DonApiIT {

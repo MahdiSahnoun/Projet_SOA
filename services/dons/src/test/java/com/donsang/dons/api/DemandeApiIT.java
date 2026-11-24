@@ -39,7 +39,11 @@ import com.donsang.dons.securite.JwtService;
 import com.jayway.jsonpath.JsonPath;
 
 /** Test d'intégration REST : vraie chaîne HTTP + sécurité + JPA (H2) ; Inventaire est simulé. */
-@SpringBootTest
+// Pas de Config Server ni d'Eureka pendant les tests (sinon dons.yml remplace la base H2 du profil test)
+@SpringBootTest(properties = {
+        "spring.cloud.config.enabled=false",
+        "eureka.client.enabled=false"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class DemandeApiIT {
