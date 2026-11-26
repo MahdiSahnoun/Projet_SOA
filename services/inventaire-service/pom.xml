@@ -29,6 +29,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.donsang</groupId>
       <artifactId>inventaire-grpc</artifactId>
       <version>${project.version}</version>

@@ -4,6 +4,7 @@ import static com.donsang.dons.domaine.GroupeSanguin.O_NEGATIF;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.verify;
@@ -34,7 +35,10 @@ import com.donsang.dons.client.InventaireClient;
 import com.donsang.dons.client.RegistreClient;
 import com.donsang.dons.depot.DonneurRepository;
 import com.donsang.dons.depot.HopitalRepository;
+import com.donsang.dons.domaine.Donneur;
 import com.donsang.dons.erreur.StockInsuffisantException;
+import com.donsang.dons.notification.EmailNotificationPublisher;
+import com.donsang.dons.notification.EmailNotificationEvent;
 import com.donsang.dons.securite.JwtService;
 import com.jayway.jsonpath.JsonPath;
 
@@ -64,14 +68,18 @@ class DemandeApiIT {
     InventaireClient inventaire;
     @MockBean
     RegistreClient registre;
+    @MockBean
+    EmailNotificationPublisher notifications;
 
     private String jetonHopital;
     private String jetonDonneur;
+    private Donneur donneurTest;
 
     @BeforeEach
     void preparer() {
         jetonHopital = "Bearer " + jwt.generer(hopitaux.save(Fixtures.hopital()));
-        jetonDonneur = "Bearer " + jwt.generer(donneurs.save(Fixtures.donneur()));
+        donneurTest = donneurs.save(Fixtures.donneur());
+        jetonDonneur = "Bearer " + jwt.generer(donneurTest);
     }
 
     @Test
@@ -119,6 +127,40 @@ class DemandeApiIT {
                         .contentType(APPLICATION_JSON).content(DEMANDE))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.statut").value("EN_ATTENTE"));
+    }
+
+    @Test
+    void stockInsuffisant_solliciteSeulementLesDonneursEligiblesAyantAccepteLesAlertes() throws Exception {
+        donneurTest.setAccepteAlertesDon(true);
+        donneurs.save(donneurTest);
+        when(inventaire.reserver(anyList(), anyInt(), anyString()))
+                .thenThrow(new StockInsuffisantException("3 poches demandées, 1 disponible"));
+        when(registre.listerDonneursEligibles(O_NEGATIF))
+                .thenReturn(List.of(donneurTest.getIdentifiantNational()));
+
+        mvc.perform(post("/api/v1/demandes").header(AUTHORIZATION, jetonHopital)
+                        .contentType(APPLICATION_JSON).content(DEMANDE))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.statut").value("EN_ATTENTE"));
+
+        verify(notifications).publierApresCommit(argThat(event ->
+                event.type() == EmailNotificationEvent.Type.DONNEUR_SOLLICITE
+                        && event.recipientEmail().equals(donneurTest.getEmail())));
+    }
+
+    @Test
+    void preferenceAlertePeutEtreDesactiveeParLeDonneurConnecte() throws Exception {
+        donneurTest.setAccepteAlertesDon(true);
+        donneurs.save(donneurTest);
+
+        mvc.perform(patch("/api/v1/donneurs/{id}/alertes-email", donneurTest.getId())
+                        .header(AUTHORIZATION, jetonDonneur)
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"accepter\":false}"))
+                .andExpect(status().isNoContent());
+
+        org.junit.jupiter.api.Assertions.assertFalse(
+                donneurs.findById(donneurTest.getId()).orElseThrow().isAccepteAlertesDon());
     }
 
     @Test

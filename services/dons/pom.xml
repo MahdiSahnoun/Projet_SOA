@@ -14,6 +14,10 @@
   <artifactId>dons</artifactId>
 
   <dependencies>
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
     <!-- REST, validation, persistance, sécurité, santé, AOP (Resilience4j) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

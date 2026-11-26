@@ -17,6 +17,8 @@ import com.donsang.dons.domaine.Donneur;
 import com.donsang.dons.erreur.ConflitException;
 import com.donsang.dons.erreur.RequeteInvalideException;
 import com.donsang.dons.erreur.RessourceIntrouvableException;
+import com.donsang.dons.notification.EmailNotificationPublisher;
+import com.donsang.dons.notification.EmailNotificationEvent;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +32,7 @@ public class DonneurService {
     private final PasswordEncoder passwordEncoder;
     private final RegistreClient registre;
     private final Clock clock;
+    private final EmailNotificationPublisher notifications;
 
     public DonneurReponse inscrire(InscriptionDonneurRequest r) {
         String email = r.email().toLowerCase(Locale.ROOT);
@@ -49,6 +52,7 @@ public class DonneurService {
         donneur.setDateNaissance(r.dateNaissance());
         donneur.setPoids(r.poids());
         donneur.setGroupeSanguin(r.groupeSanguin());
+        donneur.setAccepteAlertesDon(r.accepteAlertesDon());
 
         if (!donneur.estMajeur(LocalDate.now(clock))) {
             throw new RequeteInvalideException("Le donneur doit être majeur");
@@ -57,7 +61,15 @@ public class DonneurService {
         if (!registre.existe(r.identifiantNational())) {
             throw new RequeteInvalideException("Identifiant inconnu du registre national");
         }
-        return DonneurReponse.de(donneurs.save(donneur));
+        Donneur enregistre = donneurs.save(donneur);
+        notifications.publierApresCommit(new EmailNotificationEvent(
+                null,
+                EmailNotificationEvent.Type.DONNEUR_INSCRIT,
+                enregistre.getEmail(),
+                enregistre.getNom(),
+                "DONNEUR-" + enregistre.getId(),
+                java.util.Map.of("groupeSanguin", enregistre.getGroupeSanguin().name())));
+        return DonneurReponse.de(enregistre);
     }
 
     @Transactional(readOnly = true)
@@ -68,5 +80,14 @@ public class DonneurService {
         }
         return donneurs.findById(id).map(DonneurReponse::de)
                 .orElseThrow(() -> new RessourceIntrouvableException("Donneur " + id + " introuvable"));
+    }
+
+    public void modifierPreferenceAlertes(Long id, Long idConnecte, boolean accepter) {
+        if (!id.equals(idConnecte)) {
+            throw new RessourceIntrouvableException("Donneur " + id + " introuvable");
+        }
+        Donneur donneur = donneurs.findById(id)
+                .orElseThrow(() -> new RessourceIntrouvableException("Donneur " + id + " introuvable"));
+        donneur.setAccepteAlertesDon(accepter);
     }
 }

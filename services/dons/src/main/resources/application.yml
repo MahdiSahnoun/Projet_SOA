@@ -15,6 +15,15 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update          # suffisant pour le projet ; Flyway serait l'étape suivante
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+app:
+  kafka:
+    email-topic: ${NOTIFICATION_EMAIL_TOPIC:notifications.email}
 
 # Client gRPC vers Inventaire (en Docker : static://inventaire-service:9090, fourni par docker-compose.yml)
 grpc:

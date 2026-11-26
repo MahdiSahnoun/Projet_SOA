@@ -31,8 +31,6 @@ import java.util.UUID;
 
 @Service
 public class InventaireService {
-    private static final List<String> ORDRE_BANQUES = List.of("BANQUE-A", "BANQUE-B", "BANQUE-C");
-
     private final BanqueRepository banques;
     private final PocheSangRepository poches;
     private final RegleDePeremption regleDePeremption;
@@ -116,14 +114,13 @@ public class InventaireService {
                     throw new StockInsuffisantException(
                             "Stock insuffisant pour " + quantite + " poche(s)");
                 }
-                GroupeSanguin groupe = poche.getGroupe();
-            poche.reserver(referenceDemande);
-            poches.save(poche);
-            String cle = poche.getBanque().getBanqueId() + ":" + poche.getGroupe();
-            allocations.compute(cle, (unused, allocation) ->
-                    allocation == null
-                            ? new Allocation(poche.getBanque().getBanqueId(), poche.getGroupe(), 1)
-                            : allocation.ajouter());
+                poche.reserver(referenceDemande);
+                poches.save(poche);
+                String cle = poche.getBanque().getBanqueId() + ":" + poche.getGroupe();
+                allocations.compute(cle, (unused, allocation) ->
+                        allocation == null
+                                ? new Allocation(poche.getBanque().getBanqueId(), poche.getGroupe(), 1)
+                                : allocation.ajouter());
             }
         }
         publierApresCommit();

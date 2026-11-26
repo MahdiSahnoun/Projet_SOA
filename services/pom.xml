@@ -26,6 +26,7 @@
     <module>dons</module>
     <module>inventaire-service</module>
     <module>registre-service</module>
+    <module>notification-service</module>
   </modules>
 
   <properties>

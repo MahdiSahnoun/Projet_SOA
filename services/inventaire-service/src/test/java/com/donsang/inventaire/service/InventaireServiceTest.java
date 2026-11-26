@@ -1,11 +1,9 @@
 package com.donsang.inventaire.service;
 
 import com.donsang.inventaire.domain.GroupeSanguin;
-import com.donsang.inventaire.repository.BanqueRepository;
 import com.donsang.inventaire.domain.PocheSang;
 import com.donsang.inventaire.repository.PocheSangRepository;
 import com.donsang.inventaire.service.exceptions.BanqueInconnueException;
-import com.donsang.inventaire.service.exceptions.AucunePocheReserveeException;
 import com.donsang.inventaire.service.exceptions.PocheExistanteException;
 import com.donsang.inventaire.service.exceptions.PochePerimeeException;
 import com.donsang.inventaire.service.exceptions.ReferenceInconnueException;
@@ -50,9 +48,6 @@ class InventaireServiceTest {
 
     @Autowired
     private PocheSangRepository poches;
-
-    @Autowired
-    private BanqueRepository banques;
 
     @BeforeEach
     void viderPoches() {

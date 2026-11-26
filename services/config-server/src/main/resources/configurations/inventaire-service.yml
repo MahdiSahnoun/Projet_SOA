@@ -14,6 +14,11 @@ spring:
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   jpa:
     hibernate:
       ddl-auto: update
@@ -39,3 +44,8 @@ eureka:
 
 inventaire:
   stock-critique-seuil: ${INVENTAIRE_STOCK_CRITIQUE_SEUIL:3}
+  stock-alert-recipient: ${INVENTAIRE_STOCK_ALERT_RECIPIENT:stock-alerts@donsang.local}
+
+app:
+  kafka:
+    email-topic: ${NOTIFICATION_EMAIL_TOPIC:notifications.email}

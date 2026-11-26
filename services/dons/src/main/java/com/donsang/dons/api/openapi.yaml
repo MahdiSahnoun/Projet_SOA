@@ -112,6 +112,26 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/donneurs/{id}/alertes-email:
+    patch:
+      tags: [Donneurs]
+      summary: Modifier son consentement aux alertes de don
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferenceAlertesDonRequest'
+      responses:
+        '204':
+          description: Préférence mise à jour
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/dons:
     post:
       tags: [Dons]
@@ -468,6 +488,17 @@ components:
           minimum: 50
         groupeSanguin:
           $ref: '#/components/schemas/GroupeSanguin'
+        accepteAlertesDon:
+          type: boolean
+          default: false
+          description: Consentement facultatif pour recevoir des appels aux donneurs par e-mail.
+    PreferenceAlertesDonRequest:
+      type: object
+      required: [accepter]
+      properties:
+        accepter:
+          type: boolean
+          description: Autoriser ou arrêter les appels aux donneurs par e-mail.
     DonneurReponse:
       type: object
       properties:

@@ -13,6 +13,11 @@ spring:
       ddl-auto: update
     # Crée les tables avant d'exécuter data.sql
     defer-datasource-initialization: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   # data.sql (banques et poches de démo) chargé même sans Config Server ;
   # rejouable sans risque : chaque INSERT se termine par ON CONFLICT DO NOTHING
   sql:
@@ -41,3 +46,7 @@ management:
         include: health,info
 inventaire:
   stock-critique-seuil: ${INVENTAIRE_STOCK_CRITIQUE_SEUIL:3}
+  stock-alert-recipient: ${INVENTAIRE_STOCK_ALERT_RECIPIENT:stock-alerts@donsang.local}
+app:
+  kafka:
+    email-topic: ${NOTIFICATION_EMAIL_TOPIC:notifications.email}

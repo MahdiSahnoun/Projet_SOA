@@ -2,7 +2,6 @@ package com.donsang.inventaire.grpc;
 
 import com.donsang.inventaire.domain.GroupeSanguin;
 import com.donsang.inventaire.domain.PocheSang;
-import com.donsang.inventaire.repository.PocheSangRepository;
 import com.donsang.inventaire.service.InventaireService;
 import com.donsang.inventaire.service.StockInsuffisantException;
 import com.donsang.inventaire.service.exceptions.AucunePocheReserveeException;
@@ -33,13 +32,11 @@ import java.util.List;
 @GrpcService
 public class InventaireGrpcService extends InventaireServiceGrpc.InventaireServiceImplBase {
     private final InventaireService inventaire;
-    private final PocheSangRepository poches;
     private final StockStreamBroadcaster stockStreamBroadcaster;
 
-    public InventaireGrpcService(InventaireService inventaire, PocheSangRepository poches,
+    public InventaireGrpcService(InventaireService inventaire,
                                  StockStreamBroadcaster stockStreamBroadcaster) {
         this.inventaire = inventaire;
-        this.poches = poches;
         this.stockStreamBroadcaster = stockStreamBroadcaster;
     }
 

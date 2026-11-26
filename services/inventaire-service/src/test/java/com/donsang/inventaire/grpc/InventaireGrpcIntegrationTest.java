@@ -9,7 +9,6 @@ import com.donsang.inventaire.domain.PocheSang;
 import com.donsang.inventaire.domain.StatutPoche;
 import com.donsang.inventaire.service.RegleDePeremption;
 import com.donsang.inventaire.service.StockChangeEvent;
-import com.donsang.inventaire.service.StockInsuffisantException;
 import com.donsang.inventaire.v1.AjoutPocheRequest;
 import com.donsang.inventaire.v1.InventaireServiceGrpc;
 import com.donsang.inventaire.v1.PocheReponse;

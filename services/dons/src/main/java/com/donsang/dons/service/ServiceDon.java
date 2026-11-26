@@ -3,10 +3,15 @@ package com.donsang.dons.service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +37,8 @@ import com.donsang.dons.erreur.InventaireIndisponibleException;
 import com.donsang.dons.erreur.RegistreIndisponibleException;
 import com.donsang.dons.erreur.RessourceIntrouvableException;
 import com.donsang.dons.erreur.StockInsuffisantException;
+import com.donsang.dons.notification.EmailNotificationPublisher;
+import com.donsang.dons.notification.EmailNotificationEvent;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,6 +51,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class ServiceDon {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDon.class);
     static final int VOLUME_STANDARD_ML = 450;
     static final int DUREE_CONSERVATION_JOURS = 42;
 
@@ -55,6 +63,7 @@ public class ServiceDon {
     private final RegistreClient registre;
     private final InventaireClient inventaire;
     private final Clock clock;
+    private final EmailNotificationPublisher notifications;
 
     // ================================================================ Dons
 
@@ -74,15 +83,24 @@ public class ServiceDon {
 
         if (!donneur.estMajeur(aujourdhui)) {
             don.refuser("Le donneur doit être majeur");
-            return DonReponse.de(don);
+        } else {
+            Eligibilite eligibilite = registre.verifier(donneur.getIdentifiantNational());
+            switch (eligibilite.etat()) {
+                case INELIGIBLE -> don.refuser(eligibilite.motif());
+                case EN_ATTENTE -> don.mettreEnAttente(eligibilite.motif());
+                case ELIGIBLE -> accepter(don, donneur, aujourdhui);
+            }
         }
-
-        Eligibilite eligibilite = registre.verifier(donneur.getIdentifiantNational());
-        switch (eligibilite.etat()) {
-            case INELIGIBLE -> don.refuser(eligibilite.motif());
-            case EN_ATTENTE -> don.mettreEnAttente(eligibilite.motif());
-            case ELIGIBLE -> accepter(don, donneur, aujourdhui);
-        }
+        notifications.publierApresCommit(new EmailNotificationEvent(
+                null,
+                EmailNotificationEvent.Type.DON_STATUT_CHANGE,
+                donneur.getEmail(),
+                donneur.getNom(),
+                "DON-" + don.getId(),
+                Map.of(
+                        "statut", don.getStatut().name(),
+                        "codeBanque", don.getCodeBanque(),
+                        "dateService", don.getDateService().toString())));
         return DonReponse.de(don);
     }
 
@@ -131,9 +149,13 @@ public class ServiceDon {
             inventaire.reserver(groupesCompatibles(requete.groupeSanguin()), requete.quantite(), demande.reference())
                     .forEach(a -> demande.ajouterAllocation(a.codeBanque(), a.groupeSanguin(), a.quantite()));
             demande.accepter();
-        } catch (StockInsuffisantException | InventaireIndisponibleException e) {
+        } catch (StockInsuffisantException e) {
+            demande.mettreEnAttente();
+            solliciterDonneurs(demande);
+        } catch (InventaireIndisponibleException e) {
             demande.mettreEnAttente();
         }
+        notifierHopital(demande);
         return DemandeReponse.de(demande);
     }
 
@@ -154,6 +176,7 @@ public class ServiceDon {
             inventaire.liberer(demande.reference());
         }
         demande.annuler();
+        publierDemande(demande);
         return DemandeReponse.de(demande);
     }
 
@@ -164,5 +187,52 @@ public class ServiceDon {
     private Demande demandeDe(Long id, Long hopitalId) {
         return demandes.findByIdAndHopitalId(id, hopitalId)
                 .orElseThrow(() -> new RessourceIntrouvableException("Demande " + id + " introuvable"));
+    }
+
+    private void notifierHopital(Demande demande) {
+        publierDemande(demande);
+    }
+
+    private void publierDemande(Demande demande) {
+        notifications.publierApresCommit(new EmailNotificationEvent(
+                null,
+                EmailNotificationEvent.Type.DEMANDE_STATUT_CHANGE,
+                demande.getHopital().getEmail(),
+                demande.getHopital().getNom(),
+                demande.reference(),
+                Map.of(
+                        "statut", demande.getStatut().name(),
+                        "groupeSanguin", demande.getGroupeSanguin().name(),
+                        "quantite", Integer.toString(demande.getQuantite()),
+                        "urgence", demande.getUrgence().name())));
+    }
+
+    private void solliciterDonneurs(Demande demande) {
+        Set<String> identifiantsEligibles = new LinkedHashSet<>();
+        try {
+            for (GroupeSanguin groupe : groupesCompatibles(demande.getGroupeSanguin())) {
+                identifiantsEligibles.addAll(registre.listerDonneursEligibles(groupe));
+            }
+        } catch (RegistreIndisponibleException e) {
+            LOGGER.warn("Impossible de rechercher des donneurs éligibles pour la demande {} : registre indisponible",
+                    demande.reference(), e);
+            return;
+        }
+
+        if (identifiantsEligibles.isEmpty()) {
+            return;
+        }
+        donneurs.findByIdentifiantNationalIn(identifiantsEligibles).stream()
+                .filter(Donneur::isAccepteAlertesDon)
+                .forEach(donneur -> notifications.publierApresCommit(new EmailNotificationEvent(
+                        null,
+                        EmailNotificationEvent.Type.DONNEUR_SOLLICITE,
+                        donneur.getEmail(),
+                        donneur.getNom(),
+                        demande.reference(),
+                        Map.of(
+                                "groupeSanguin", demande.getGroupeSanguin().name(),
+                                "quantite", Integer.toString(demande.getQuantite()),
+                                "urgence", demande.getUrgence().name()))));
     }
 }

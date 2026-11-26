@@ -189,6 +189,8 @@ services:
       COMPTES_TEST_MDP: ${COMPTES_TEST_MDP:-Demo2026!}
       INVENTAIRE_GRPC_ADDRESS: static://inventaire-service:9090
       REGISTRE_URL: http://registre-service:8083/ws
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      NOTIFICATION_EMAIL_TOPIC: ${NOTIFICATION_EMAIL_TOPIC:-notifications.email}
     depends_on:
       config-server:
         condition: service_healthy
@@ -200,6 +202,8 @@ services:
         condition: service_healthy
       registre-service:
         condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - microservices-net
     restart: unless-stopped
@@ -218,6 +222,9 @@ services:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
       EUREKA_INSTANCE_HOSTNAME: inventaire-service
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      NOTIFICATION_EMAIL_TOPIC: ${NOTIFICATION_EMAIL_TOPIC:-notifications.email}
+      INVENTAIRE_STOCK_ALERT_RECIPIENT: ${INVENTAIRE_STOCK_ALERT_RECIPIENT:-stock-alerts@donsang.local}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
       interval: 10s
@@ -229,6 +236,8 @@ services:
         condition: service_healthy
       discovery:
         condition: service_healthy
+      kafka:
+        condition: service_started
     networks:
       - microservices-net
     restart: unless-stopped
@@ -257,6 +266,41 @@ services:
         condition: service_healthy
       discovery:
         condition: service_healthy
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      NOTIFICATION_EMAIL_TOPIC: ${NOTIFICATION_EMAIL_TOPIC:-notifications.email}
+      NOTIFICATION_KAFKA_GROUP: notification-service
+      MAIL_HOST: mail-dev
+      MAIL_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-no-reply@donsang.local}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: notification-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      mail-dev:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     networks:
       - microservices-net
     restart: unless-stopped

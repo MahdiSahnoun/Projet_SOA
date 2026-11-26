@@ -52,9 +52,28 @@ Le fichier `.env` doit être présent dans `services/` et contenir au minimum
 `DB_PASSWORD` et `JWT_SECRET`. Le Compose remplace automatiquement `DB_URL`
 par l'adresse interne `postgres:5432` pour le conteneur Dons.
 
+## Notifications par e-mail
+
+`dons` et `inventaire-service` publient les événements e-mail sur le topic Kafka
+`notifications.email`; `notification-service` les consomme et envoie les messages via SMTP.
+Avec Docker Compose, MailDev reçoit les e-mails de développement : interface sur
+`http://localhost:1080`, SMTP interne sur `mail-dev:1025`.
+
+Les appels aux donneurs pour une demande en pénurie sont envoyés uniquement aux donneurs
+éligibles qui ont accepté ces alertes. Le consentement peut être fourni à l'inscription avec
+`accepteAlertesDon: true`, puis modifié avec `PATCH /api/v1/donneurs/{id}/alertes-email`
+(`{"accepter":true}` ou `{"accepter":false}`).
+
+Les alertes de stock critique sont envoyées à `INVENTAIRE_STOCK_ALERT_RECIPIENT`
+(par défaut `stock-alerts@donsang.local` en développement). Pour un SMTP réel, configurer
+`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`,
+`MAIL_SMTP_STARTTLS` et `MAIL_FROM`.
+
 ## Limites connues
 
 - Pas de rejeu automatique d'un don resté `EN_ATTENTE` quand le Registre était en panne.
+- Si le Registre est indisponible pendant une pénurie, la demande reste en attente, mais les
+  donneurs ne sont pas sollicités automatiquement après le rétablissement du Registre.
 - Si Inventaire tombe après l'enregistrement officiel d'un don, le don est `ACCEPTEE`
   avec un motif demandant à la banque de saisir la poche (pas de transaction distribuée).
 - `traiterDemande` garde la transaction SQL ouverte pendant l'appel gRPC (borné par la deadline).

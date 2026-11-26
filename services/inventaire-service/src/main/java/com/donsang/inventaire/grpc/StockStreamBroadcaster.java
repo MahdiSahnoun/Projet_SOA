@@ -2,19 +2,24 @@ package com.donsang.inventaire.grpc;
 
 import com.donsang.inventaire.domain.Banque;
 import com.donsang.inventaire.domain.GroupeSanguin;
+import com.donsang.inventaire.notification.EmailNotificationEvent;
 import com.donsang.inventaire.repository.BanqueRepository;
 import com.donsang.inventaire.repository.PocheSangRepository;
+import com.donsang.inventaire.notification.EmailNotificationPublisher;
 import com.donsang.inventaire.service.StockChangeEvent;
 import com.donsang.inventaire.v1.EtatStock;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
@@ -22,13 +27,20 @@ public class StockStreamBroadcaster {
     private final PocheSangRepository poches;
     private final BanqueRepository banques;
     private final int seuilCritique;
+    private final String stockAlertRecipient;
+    private final EmailNotificationPublisher notifications;
     private final CopyOnWriteArrayList<Abonnement> abonnements = new CopyOnWriteArrayList<>();
+    private final Map<String, Boolean> etatsCritiques = new ConcurrentHashMap<>();
 
     public StockStreamBroadcaster(PocheSangRepository poches, BanqueRepository banques,
-                                  @Value("${inventaire.stock-critique-seuil:3}") int seuilCritique) {
+                                  @Value("${inventaire.stock-critique-seuil:3}") int seuilCritique,
+                                  @Value("${inventaire.stock-alert-recipient}") String stockAlertRecipient,
+                                  EmailNotificationPublisher notifications) {
         this.poches = poches;
         this.banques = banques;
         this.seuilCritique = seuilCritique;
+        this.stockAlertRecipient = stockAlertRecipient;
+        this.notifications = notifications;
     }
 
     public void envoyerEtatInitial(String banqueId, GroupeSanguin groupe,
@@ -54,6 +66,7 @@ public class StockStreamBroadcaster {
 
     @EventListener
     public void stockAChange(StockChangeEvent event) {
+        notifierFranchissementSeuil();
         for (Abonnement abonnement : abonnements) {
             if (abonnement.observer() instanceof ServerCallStreamObserver<EtatStock> serveur
                     && serveur.isCancelled()) {
@@ -63,6 +76,35 @@ public class StockStreamBroadcaster {
             snapshot(abonnement.banqueId(), abonnement.groupe())
                     .forEach(abonnement.observer()::onNext);
         }
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void initialiserEtatsCritiques() {
+        snapshot(null, null).forEach(etat ->
+                etatsCritiques.put(cle(etat), etat.getCritique()));
+    }
+
+    private void notifierFranchissementSeuil() {
+        snapshot(null, null).forEach(etat -> {
+            Boolean etaitCritique = etatsCritiques.put(cle(etat), etat.getCritique());
+            if (Boolean.FALSE.equals(etaitCritique) && etat.getCritique()) {
+                notifications.publierApresCommit(new EmailNotificationEvent(
+                        null,
+                        EmailNotificationEvent.Type.STOCK_CRITIQUE,
+                        stockAlertRecipient,
+                        "Équipe de gestion des stocks",
+                        etat.getBanqueId() + ":" + etat.getGroupe().name(),
+                        Map.of(
+                                "codeBanque", etat.getBanqueId(),
+                                "groupeSanguin", etat.getGroupe().name(),
+                                "disponibles", Integer.toString(etat.getDisponibles()),
+                                "seuil", Integer.toString(seuilCritique))));
+            }
+        });
+    }
+
+    private static String cle(EtatStock etat) {
+        return etat.getBanqueId() + ":" + etat.getGroupe().name();
     }
 
     private List<EtatStock> snapshot(String banqueId, GroupeSanguin groupe) {
