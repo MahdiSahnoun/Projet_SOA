@@ -17,6 +17,8 @@ spring:
       ddl-auto: update          # suffisant pour le projet ; Flyway serait l'étape suivante
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    template:
+      observation-enabled: true
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -60,6 +62,12 @@ management:
   health:
     circuitbreakers:
       enabled: true
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
 
 # Résilience : un circuit par service distant ; les erreurs métier n'ouvrent pas le circuit
 resilience4j:

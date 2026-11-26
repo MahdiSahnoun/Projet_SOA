@@ -1,45 +1,75 @@
 package com.donsang.notification.service;
 
 import com.donsang.notification.events.EmailNotificationEvent;
+import com.donsang.notification.history.NotificationAttempt;
+import com.donsang.notification.history.NotificationHistoryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.MailException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class EmailNotificationListener {
 
+    private static final Logger log = LoggerFactory.getLogger(EmailNotificationListener.class);
+
     private final ObjectMapper objectMapper;
     private final JavaMailSender mailSender;
     private final String senderAddress;
+    private final NotificationHistoryService historyService;
 
     public EmailNotificationListener(ObjectMapper objectMapper, JavaMailSender mailSender,
-                                     @Value("${app.mail.from}") String senderAddress) {
+                                     @Value("${app.mail.from}") String senderAddress,
+                                     NotificationHistoryService historyService) {
         this.objectMapper = objectMapper;
         this.mailSender = mailSender;
         this.senderAddress = senderAddress;
+        this.historyService = historyService;
     }
 
     @KafkaListener(topics = "${app.kafka.email-topic}")
-    public void recevoir(String payload) {
+    public void recevoir(ConsumerRecord<String, String> record) {
         EmailNotificationEvent event;
         try {
-            event = objectMapper.readValue(payload, EmailNotificationEvent.class);
+            event = objectMapper.readValue(record.value(), EmailNotificationEvent.class);
         } catch (JsonProcessingException e) {
+            NotificationAttempt attempt = historyService.beginAttempt(record, null);
+            historyService.markFailed(attempt.historyId(), "Invalid notification event");
             throw new IllegalArgumentException("Invalid email notification event", e);
         }
 
+        NotificationAttempt attempt = historyService.beginAttempt(record, event);
+        if (attempt.alreadySent()) {
+            return;
+        }
+        UUID historyId = attempt.historyId();
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(senderAddress);
         message.setTo(event.recipientEmail());
         message.setSubject(sujet(event));
         message.setText(corps(event));
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+        } catch (MailException e) {
+            try {
+                historyService.markFailed(historyId, e.getClass().getSimpleName());
+            } catch (RuntimeException historyException) {
+                e.addSuppressed(historyException);
+                log.error("Could not persist failed notification status for event {}", event.eventId(), historyException);
+            }
+            throw e;
+        }
+        historyService.markSent(historyId);
     }
 
     private static String sujet(EmailNotificationEvent event) {

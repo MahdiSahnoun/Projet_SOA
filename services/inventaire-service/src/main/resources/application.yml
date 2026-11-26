@@ -15,9 +15,11 @@ spring:
     defer-datasource-initialization: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    template:
+      observation-enabled: true
     producer:
-    key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   # data.sql (banques et poches de démo) chargé même sans Config Server ;
   # rejouable sans risque : chaque INSERT se termine par ON CONFLICT DO NOTHING
   sql:
@@ -44,6 +46,12 @@ management:
     web:
       exposure:
         include: health,info
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
 inventaire:
   stock-critique-seuil: ${INVENTAIRE_STOCK_CRITIQUE_SEUIL:3}
   stock-alert-recipient: ${INVENTAIRE_STOCK_ALERT_RECIPIENT:stock-alerts@donsang.local}

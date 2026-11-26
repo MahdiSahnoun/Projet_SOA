@@ -12,9 +12,9 @@ spring:
 
   # Base locale (docker compose up registre_db) ; remplacée par SPRING_DATASOURCE_* en Docker
   datasource:
-    url: jdbc:postgresql://localhost:5434/registre_db
-    username: postgres
-    password: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/registre_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -25,3 +25,11 @@ spring:
   sql:
     init:
       mode: always
+
+management:
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
