@@ -24,8 +24,13 @@ import com.donsang.dons.client.InventaireClient;
 import com.donsang.dons.client.RegistreClient;
 import com.donsang.dons.depot.HopitalRepository;
 import com.donsang.dons.domaine.Hopital;
+import com.donsang.dons.notification.EmailNotificationPublisher;
 
-@SpringBootTest
+// Pas de Config Server ni d'Eureka pendant les tests (sinon dons.yml remplace la base H2 du profil test)
+@SpringBootTest(properties = {
+        "spring.cloud.config.enabled=false",
+        "eureka.client.enabled=false"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthApiIT {
@@ -41,6 +46,8 @@ class AuthApiIT {
     InventaireClient inventaire;
     @MockBean
     RegistreClient registre;
+    @MockBean
+    EmailNotificationPublisher notifications;
 
     @Test
     void connexionValide_renvoieUnJeton() throws Exception {

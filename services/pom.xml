@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <!-- POM parent : Java 17, Spring Boot 3.3.x, versions communes à tous les modules -->
+  <!-- POM parent : Java 21, Spring Boot 3.3.x, Spring Cloud 2023.0.3 -->
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
@@ -24,21 +24,35 @@
     <module>config-server</module>
     <module>discovery</module>
     <module>dons</module>
-    <!-- à ajouter par les autres membres : gateway, services/inventaire, services/registre, outils/simulateur -->
+    <module>inventaire-service</module>
+    <module>registre-service</module>
+    <module>notification-service</module>
   </modules>
 
   <properties>
-    <java.version>17</java.version>
+    <!-- Java 21 pour tous les modules -->
+    <java.version>21</java.version>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <spring-cloud.version>2023.0.3</spring-cloud.version>
     <grpc.version>1.63.0</grpc.version>
     <protobuf.version>3.25.3</protobuf.version>
     <grpc-starter.version>3.1.0.RELEASE</grpc-starter.version>
     <jjwt.version>0.12.6</jjwt.version>
     <resilience4j.version>2.2.0</resilience4j.version>
     <springdoc.version>2.6.0</springdoc.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-bom</artifactId>
@@ -63,4 +77,5 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
 </project>

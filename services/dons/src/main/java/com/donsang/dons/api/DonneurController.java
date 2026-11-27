@@ -3,17 +3,21 @@ package com.donsang.dons.api;
 import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.donsang.dons.api.dto.DonneurReponse;
 import com.donsang.dons.api.dto.InscriptionDonneurRequest;
+import com.donsang.dons.api.dto.PreferenceAlertesDonRequest;
 import com.donsang.dons.securite.UtilisateurConnecte;
 import com.donsang.dons.service.DonneurService;
 
@@ -42,5 +46,13 @@ public class DonneurController {
     @GetMapping("/{id}")
     public DonneurReponse profil(@PathVariable Long id, Authentication auth) {
         return donneurService.profil(id, UtilisateurConnecte.id(auth));
+    }
+
+    @PatchMapping("/{id}/alertes-email")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void modifierPreferenceAlertes(@PathVariable Long id,
+                                          @Valid @RequestBody PreferenceAlertesDonRequest requete,
+                                          Authentication auth) {
+        donneurService.modifierPreferenceAlertes(id, UtilisateurConnecte.id(auth), requete.accepter());
     }
 }

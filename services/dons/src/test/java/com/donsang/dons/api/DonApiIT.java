@@ -29,9 +29,14 @@ import com.donsang.dons.client.RegistreClient;
 import com.donsang.dons.depot.BanqueDeSangRepository;
 import com.donsang.dons.depot.DonneurRepository;
 import com.donsang.dons.securite.JwtService;
+import com.donsang.dons.notification.EmailNotificationPublisher;
 
 /** Parcours d'un don (REST -> SOAP -> gRPC) avec Registre et Inventaire simulés. */
-@SpringBootTest
+// Pas de Config Server ni d'Eureka pendant les tests (sinon dons.yml remplace la base H2 du profil test)
+@SpringBootTest(properties = {
+        "spring.cloud.config.enabled=false",
+        "eureka.client.enabled=false"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class DonApiIT {
@@ -49,6 +54,8 @@ class DonApiIT {
     InventaireClient inventaire;
     @MockBean
     RegistreClient registre;
+    @MockBean
+    EmailNotificationPublisher notifications;
 
     private String jetonDonneur;
     private String codeBanque;

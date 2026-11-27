@@ -33,6 +33,9 @@ public class Donneur extends Utilisateur {
 
     private LocalDate dateDernierDon;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean accepteAlertesDon;
+
     @Override
     public Role getRole() {
         return Role.DONNEUR;

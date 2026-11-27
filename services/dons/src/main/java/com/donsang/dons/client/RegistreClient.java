@@ -1,6 +1,7 @@
 package com.donsang.dons.client;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -15,6 +16,8 @@ import com.donsang.dons.erreur.DonneurInconnuException;
 import com.donsang.dons.erreur.RegistreIndisponibleException;
 import com.donsang.registre.v1.EnregistrerDonRequest;
 import com.donsang.registre.v1.EnregistrerDonResponse;
+import com.donsang.registre.v1.ListerDonneursEligiblesRequest;
+import com.donsang.registre.v1.ListerDonneursEligiblesResponse;
 import com.donsang.registre.v1.VerifierEligibiliteRequest;
 import com.donsang.registre.v1.VerifierEligibiliteResponse;
 import com.donsang.registre.v1.VerifierExistenceRequest;
@@ -38,12 +41,29 @@ public class RegistreClient {
         this.registreTemplate = registreTemplate;
     }
 
+    @CircuitBreaker(name = REGISTRE, fallbackMethod = "repliDonneursEligibles")
+    public List<String> listerDonneursEligibles(GroupeSanguin groupe) {
+        ListerDonneursEligiblesRequest requete = new ListerDonneursEligiblesRequest();
+        requete.setGroupe(groupe.name());
+        ListerDonneursEligiblesResponse reponse =
+                (ListerDonneursEligiblesResponse) registreTemplate.marshalSendAndReceive(requete);
+        return List.copyOf(reponse.getIdentifiantNational());
+    }
+
     @CircuitBreaker(name = REGISTRE, fallbackMethod = "repliExistence")
     public boolean existe(String identifiantNational) {
         VerifierExistenceRequest requete = new VerifierExistenceRequest();
         requete.setIdentifiantNational(identifiantNational);
         VerifierExistenceResponse reponse = (VerifierExistenceResponse) registreTemplate.marshalSendAndReceive(requete);
         return reponse.isExiste();
+    }
+
+    @SuppressWarnings("unused")
+    private List<String> repliDonneursEligibles(GroupeSanguin groupe, Throwable erreur) {
+        if (estMetier(erreur)) {
+            throw (RuntimeException) erreur;
+        }
+        throw new RegistreIndisponibleException(erreur);
     }
 
     @CircuitBreaker(name = REGISTRE, fallbackMethod = "repliEligibilite")
@@ -76,10 +96,12 @@ public class RegistreClient {
     // --- Méthodes de repli ---------------------------------------------------------------
 
     /** Registre injoignable à l'inscription : on accepte, l'éligibilité sera revérifiée au moment du don. */
+    @SuppressWarnings("unused")
     private boolean repliExistence(String identifiantNational, Throwable erreur) {
         return true;
     }
 
+    @SuppressWarnings("unused")
     private Eligibilite repliEligibilite(String identifiantNational, Throwable erreur) {
         if (estMetier(erreur)) {
             throw (RuntimeException) erreur;   // erreur métier : on la propage telle quelle
@@ -87,6 +109,7 @@ public class RegistreClient {
         return Eligibilite.enAttente("Registre indisponible : vérification d'éligibilité différée");
     }
 
+    @SuppressWarnings("unused")
     private String repliEnregistrement(String identifiantNational, LocalDate dateDon, GroupeSanguin groupe,
                                        Throwable erreur) {
         if (estMetier(erreur)) {

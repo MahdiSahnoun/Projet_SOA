@@ -19,5 +19,6 @@ public record InscriptionDonneurRequest(
         @NotBlank @Size(max = 20) String identifiantNational,
         @NotNull @Past LocalDate dateNaissance,
         @NotNull @DecimalMin(value = "50.0", message = "le poids minimum pour donner est de 50 kg") Float poids,
-        @NotNull GroupeSanguin groupeSanguin) {
+        @NotNull GroupeSanguin groupeSanguin,
+        boolean accepteAlertesDon) {
 }

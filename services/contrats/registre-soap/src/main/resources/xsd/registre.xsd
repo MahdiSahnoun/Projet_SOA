@@ -5,6 +5,7 @@
   un couple d'éléments XxxRequest / XxxResponse.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://donsang.com/registre/v1"
            targetNamespace="http://donsang.com/registre/v1"
            elementFormDefault="qualified">
 
@@ -75,4 +76,22 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+
+  <!--
+    SOAP Faults : Spring-WS associe chaque élément XxxFault à l'opération Xxx
+    et génère le <wsdl:fault> correspondant dans le WSDL.
+  -->
+  <xs:complexType name="ErreurRegistre">
+    <xs:sequence>
+      <xs:element name="code" type="xs:string"/>      <!-- DONNEUR_INCONNU, DONNEUR_INELIGIBLE, GROUPE_INVALIDE -->
+      <xs:element name="message" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Donneur inconnu -->
+  <xs:element name="VerifierEligibiliteFault" type="tns:ErreurRegistre"/>
+  <!-- Donneur inconnu, inéligible ou groupe sanguin invalide -->
+  <xs:element name="EnregistrerDonFault" type="tns:ErreurRegistre"/>
+  <!-- Groupe sanguin invalide -->
+  <xs:element name="ListerDonneursEligiblesFault" type="tns:ErreurRegistre"/>
 </xs:schema>

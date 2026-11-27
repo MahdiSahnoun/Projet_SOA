@@ -88,19 +88,23 @@ public class InventaireClient {
 
     // --- Méthodes de repli : même signature + Throwable --------------------------------
 
+    @SuppressWarnings("unused")
     private List<AllocationObtenue> repliReservation(List<GroupeSanguin> groupes, int quantite, String reference,
                                                      Throwable erreur) {
         throw traduire(erreur);
     }
 
+    @SuppressWarnings("unused")
     private void repliLiberation(String reference, Throwable erreur) {
         throw traduire(erreur);
     }
 
+    @SuppressWarnings("unused")
     private int repliStock(GroupeSanguin groupe, String codeBanque, Throwable erreur) {
         throw traduire(erreur);
     }
 
+    @SuppressWarnings("unused")
     private String repliAjout(String codeBanque, GroupeSanguin groupe, int volumeMl,
                               LocalDate dateCollecte, LocalDate datePeremption, Throwable erreur) {
         throw traduire(erreur);

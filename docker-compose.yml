@@ -1,0 +1,360 @@
+name: projet-soa
+
+services:
+  config-server:
+    build:
+      context: .
+      dockerfile: services/config-server/Dockerfile
+    ports:
+      - "8888:8888"
+    # Healthchecks : /actuator/health doit répondre avec "UP" (wget est présent dans les images)
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  postgresql:
+    container_name: ms_pg_sql
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5433:5432"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: ms_pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.2
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "22181:2181"
+    networks:
+      - microservices-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.2
+    container_name: ms_kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+    networks:
+      - microservices-net
+
+  mail-dev:
+    container_name: ms-mail-dev
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - microservices-net
+
+  discovery:
+    build:
+      context: .
+      dockerfile: services/discovery/Dockerfile
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_INSTANCE_HOSTNAME: discovery
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  dons_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dons_db
+      POSTGRES_USER: ${DB_USER:-dons_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dons_password}
+    ports:
+      - "5436:5432"
+    volumes:
+      - dons_postgres:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  inventaire_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventaire_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${INVENTAIRE_DB_PASSWORD:-postgres}
+    ports:
+      - "5435:5432"
+    volumes:
+      - inventaire_postgres:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventaire_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  registre_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: registre_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${REGISTRE_DB_PASSWORD:-postgres}
+    ports:
+      - "5434:5432"
+    volumes:
+      - registre_postgres:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d registre_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  notification_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: ${NOTIFICATION_DB_USER:-notification_user}
+      POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-notification_password}
+    ports:
+      - "5437:5432"
+    volumes:
+      - notification_postgres:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dons:
+    build:
+      context: .
+      dockerfile: services/dons/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://dons_db:5432/dons_db
+      DB_USER: ${DB_USER:-dons_user}
+      DB_PASSWORD: ${DB_PASSWORD:-dons_password}
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: dons
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-local-development-change-me}
+      COMPTES_TEST_MDP: ${COMPTES_TEST_MDP:-Demo2026!}
+      INVENTAIRE_GRPC_ADDRESS: static://inventaire-service:9090
+      REGISTRE_URL: http://registre-service:8083/ws
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      NOTIFICATION_EMAIL_TOPIC: ${NOTIFICATION_EMAIL_TOPIC:-notifications.email}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery:
+        condition: service_healthy
+      dons_db:
+        condition: service_healthy
+      inventaire-service:
+        condition: service_healthy
+      registre-service:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  inventaire-service:
+    build:
+      context: .
+      dockerfile: services/inventaire-service/Dockerfile
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://inventaire_db:5432/inventaire_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${INVENTAIRE_DB_PASSWORD:-postgres}
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: inventaire-service
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      NOTIFICATION_EMAIL_TOPIC: ${NOTIFICATION_EMAIL_TOPIC:-notifications.email}
+      INVENTAIRE_STOCK_ALERT_RECIPIENT: ${INVENTAIRE_STOCK_ALERT_RECIPIENT:-stock-alerts@donsang.local}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    depends_on:
+      inventaire_db:
+        condition: service_healthy
+      discovery:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  registre-service:
+    build:
+      context: .
+      dockerfile: services/registre-service/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://registre_db:5432/registre_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${REGISTRE_DB_PASSWORD:-postgres}
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: registre-service
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    depends_on:
+      registre_db:
+        condition: service_healthy
+      discovery:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      NOTIFICATION_EMAIL_TOPIC: ${NOTIFICATION_EMAIL_TOPIC:-notifications.email}
+      NOTIFICATION_KAFKA_GROUP: notification-service
+      MAIL_HOST: mail-dev
+      MAIL_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-no-reply@donsang.local}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: notification-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification_db:5432/notification_db
+      SPRING_DATASOURCE_USERNAME: ${NOTIFICATION_DB_USER:-notification_user}
+      SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-notification_password}
+      NOTIFICATION_HISTORY_API_USERNAME: ${NOTIFICATION_HISTORY_API_USERNAME:-history}
+      NOTIFICATION_HISTORY_API_PASSWORD: ${NOTIFICATION_HISTORY_API_PASSWORD:-change-me-for-local-development}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      mail-dev:
+        condition: service_started
+      notification_db:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
+  dons_postgres:
+  inventaire_postgres:
+  registre_postgres:
+  notification_postgres:
